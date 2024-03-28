@@ -1,6 +1,8 @@
 package com.github.alexgopen.gvojavaish;
 
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -8,25 +10,64 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import net.sourceforge.tess4j.util.ImageHelper;
+import net.sourceforge.tess4j.util.LoadLibs;
+
 public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
-    private BufferedImage image;
+    private static final long serialVersionUID = -1668129614007560894L;
+    private BufferedImage imageMap;
+    private BufferedImage imageSurvey;
+    private BufferedImage imageSurveyCrop;
     private int imageWidth, imageHeight;
     private int offsetX = 0;
     private int offsetY = 0;
     private int lastX, lastY;
+    private Tesseract tess;
 
     public GvoJavaish() {
         try {
-            image = ImageIO.read(GvoJavaish.class.getResource("map.png"));
-            imageWidth = image.getWidth();
-            imageHeight = image.getHeight();
+            imageMap = ImageIO.read(GvoJavaish.class.getResource("map.png"));
+            imageSurvey = ImageIO.read(GvoJavaish.class.getResource("examplesurvey.png"));
+            imageSurveyCrop = ImageIO.read(GvoJavaish.class.getResource("examplesurveycrop.png"));
+            imageWidth = imageMap.getWidth();
+            imageHeight = imageMap.getHeight();
+
+            try {
+                File tmpFolder = LoadLibs.extractTessResources("win32-x86-64");
+                for (File f : tmpFolder.listFiles()) {
+                    System.load(f.getAbsolutePath());
+                }
+
+                tess = new Tesseract();
+                tess.setLanguage("eng");
+                tess.setOcrEngineMode(1);
+                tess.setPageSegMode(7);
+                Path dataDirectory = Paths.get(GvoJavaish.class.getResource("data").toURI());
+                tess.setDatapath(dataDirectory.toString());
+
+                tess.setVariable("tessedit_char_whitelist", "123456789,. ");
+                System.out.println("OCRed:");
+
+                System.out.println(tess.doOCR(ImageHelper.convertImageToGrayscale(imageSurveyCrop)));
+                System.out.println("Expected:");
+                System.out.println("15842,3284");
+            }
+            catch (TesseractException | URISyntaxException te) {
+                te.printStackTrace();
+            }
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -49,12 +90,41 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         int y = offsetY;
 
         while (x < getWidth()) {
-            g.drawImage(image, (x - imageWidth), y, null);
-            g.drawImage(image, x, y, null);
-            g.drawImage(image, (x + imageWidth), y, null);
+            g.drawImage(imageMap, (x - imageWidth), y, null);
+            g.drawImage(imageMap, x, y, null);
+            g.drawImage(imageMap, (x + imageWidth), y, null);
             x += imageWidth;
         }
 
+        renderText(g);
+
+    }
+
+    public void renderText(final Graphics g2) {
+        Color textColor = Color.RED;
+
+        g2.setColor(textColor);
+        g2.setFont(new Font("Verdana", 0, 20));
+
+        int textInitY = 35;
+        int row = 0;
+        int inc = 40;
+
+        // Zone text
+        String zoneText = String.format("Zone: %s", "unknown");
+        g2.drawString(zoneText, 15, textInitY + inc * row++);
+
+        // Coords
+        String coordText = "Coords: " + 0 + ", " + 0;
+        g2.drawString(coordText, 15, textInitY + inc * row++);
+
+        // Speed text
+        String speedText = String.format("Speed: %3.2f kt", 0.0f);
+        g2.drawString(speedText, 15, textInitY + inc * row++);
+
+        // Rot text
+        String rotText = String.format("Rotation: %d deg", 0);
+        g2.drawString(rotText, 15, textInitY + inc * row++);
     }
 
     @Override
