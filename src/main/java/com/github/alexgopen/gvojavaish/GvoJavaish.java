@@ -4,44 +4,39 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
-import net.sourceforge.tess4j.util.ImageHelper;
-import net.sourceforge.tess4j.util.LoadLibs;
-
-public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
+public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
-    private BufferedImage imageSurvey;
-    private BufferedImage imageSurveyCrop;
     private int imageWidth, imageHeight;
     private int offsetX = 0;
     private int offsetY = 0;
     private int lastX, lastY;
-    private Tesseract tess;
 
-    private int mouseX = -1;
-    private int mouseY = -1;
+    private int mouseX = Integer.MIN_VALUE;
+    private int mouseY = Integer.MIN_VALUE;
 
-    private int worldX = -1;
-    private int worldY = -1;
+    private int worldX = Integer.MIN_VALUE;
+    private int worldY = Integer.MIN_VALUE;
+
+    private int prevPointX = Integer.MIN_VALUE;
+    private int prevPointY = Integer.MIN_VALUE;
+    private int curPointX = Integer.MIN_VALUE;
+    private int curPointY = Integer.MIN_VALUE;
 
     boolean dragging;
 
@@ -53,46 +48,17 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
             imageWidth = imageMap.getWidth();
             imageHeight = imageMap.getHeight();
-
-            boolean tessEnabled = false;
-
-            if (tessEnabled) {
-                try {
-                    imageSurvey = ImageIO.read(GvoJavaish.class.getResource("examplesurvey.png"));
-                    imageSurveyCrop = ImageIO.read(GvoJavaish.class.getResource("examplesurveycrop.png"));
-
-                    File tmpFolder = LoadLibs.extractTessResources("win32-x86-64");
-                    for (File f : tmpFolder.listFiles()) {
-                        System.load(f.getAbsolutePath());
-                    }
-
-                    tess = new Tesseract();
-                    tess.setLanguage("eng");
-                    tess.setOcrEngineMode(1);
-                    tess.setPageSegMode(7);
-                    Path dataDirectory = Paths.get(GvoJavaish.class.getResource("data").toURI());
-                    tess.setDatapath(dataDirectory.toString());
-
-                    tess.setVariable("tessedit_char_whitelist", "123456789,. ");
-                    System.out.println("OCRed:");
-
-                    System.out.println(tess.doOCR(ImageHelper.convertImageToGrayscale(imageSurveyCrop)));
-                    System.out.println("Expected:");
-                    System.out.println("15842,3284");
-                }
-                catch (TesseractException | URISyntaxException te) {
-                    te.printStackTrace();
-                }
-            }
-
         }
         catch (IOException e) {
             e.printStackTrace();
         }
 
+        setFocusable(true);
+        requestFocus();
         setPreferredSize(new Dimension(1200, 800));
         addMouseListener(this);
         addMouseMotionListener(this);
+        addKeyListener(this);
     }
 
     @Override
@@ -115,11 +81,104 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
         // renderText(g);
         renderHover(g);
+        renderPoints(g);
+    }
+
+    public void renderPoints(final Graphics g2) {
+        if (prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE) {
+            int transX = prevPointX;
+            int transY = prevPointY;
+
+            g2.setColor(new Color(255, 0, 0, 255));
+            g2.fillOval(transX - 5, transY - 5, 10, 10);
+        }
+        if (curPointX != Integer.MIN_VALUE && curPointY != Integer.MIN_VALUE) {
+            int transX = curPointX;
+            int transY = curPointY;
+
+            g2.setColor(new Color(0, 255, 0, 255));
+            g2.fillOval(transX - 5, transY - 5, 10, 10);
+        }
+
+        if ((prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE)
+                && (curPointX != Integer.MIN_VALUE && curPointY != Integer.MIN_VALUE)) {
+            g2.setColor(new Color(255, 0, 0, 255));
+            g2.drawLine(prevPointX, prevPointY, curPointX, curPointY);
+
+            int xDiff = curPointX - prevPointX;
+            int yDiff = curPointY - prevPointY;
+            int maxFactorX = 0;
+            int maxFactorY = 0;
+
+            double xMaxDiff = 0;
+            double yMaxDiff = 0;
+
+            // start x
+            if (curPointX <= 0) {
+                if (xDiff <= 0) {
+                    xMaxDiff = Integer.MIN_VALUE - curPointX;
+                }
+                if (xDiff > 0) {
+                    xMaxDiff = curPointX + Integer.MAX_VALUE;
+                }
+            }
+            if (curPointX > 0) {
+                if (xDiff < 0) {
+                    xMaxDiff = curPointX + Integer.MIN_VALUE;
+                }
+                if (xDiff > 0) {
+                    xMaxDiff = Integer.MAX_VALUE - curPointX;
+                }
+            }
+            // end x
+
+            // start y
+            if (curPointY <= 0) {
+                if (yDiff <= 0) {
+                    yMaxDiff = Integer.MIN_VALUE - curPointY;
+                }
+                if (yDiff > 0) {
+                    yMaxDiff = curPointY + Integer.MAX_VALUE;
+                }
+            }
+            if (curPointY > 0) {
+                if (yDiff < 0) {
+                    yMaxDiff = curPointY + Integer.MIN_VALUE;
+                }
+                if (yDiff > 0) {
+                    yMaxDiff = Integer.MAX_VALUE - curPointY;
+                }
+            }
+            // end y
+
+            maxFactorX = (int) Math.floor(Math.abs(xMaxDiff / xDiff));
+            maxFactorY = (int) Math.floor(Math.abs(yMaxDiff / yDiff));
+
+            if (xDiff == 0 || yDiff == 0) {
+                int max = Math.max(maxFactorX, maxFactorY);
+                maxFactorX = max;
+                maxFactorY = max;
+            }
+
+            int lowestFactor = (int) (0.5 * Math.max(0, Math.min(maxFactorX, maxFactorY) - 1));
+
+            g2.setColor(new Color(0, 255, 255, 255));
+            int endX = curPointX + xDiff * lowestFactor;
+            int endY = curPointY + yDiff * lowestFactor;
+            g2.drawLine(curPointX, curPointY, endX, endY);
+
+            int transX = curPointX;
+            int transY = curPointY;
+
+            g2.setColor(new Color(0, 255, 0, 255));
+            g2.fillOval(transX - 5, transY - 5, 10, 10);
+        }
+
     }
 
     public void renderHover(final Graphics g2) {
 
-        if (mouseX == -1 || mouseY == -1) {
+        if (mouseX == Integer.MIN_VALUE || mouseY == Integer.MIN_VALUE) {
             return;
         }
 
@@ -195,6 +254,46 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseClicked(MouseEvent e) {
+        int mx = e.getX();
+        int my = e.getY();
+
+        float coordsPerPixel = 1000 / 125f;
+
+        int wX = -1;
+        int wY = -1;
+
+        wX = mx;// - offsetX;
+        wY = my;// - offsetY;
+
+        boolean world = false;
+        if (world) {
+            int maxWidth = 16384;
+
+            float x = wX / 250f;
+            x *= 1000;
+            wX = (int) x;
+
+            float y = wY / 250f;
+            y *= 1000;
+            wY = (int) y;
+
+            if (wX >= maxWidth) {
+                wX = wX % maxWidth;
+            }
+
+            if (wX <= 0) {
+                wX = wX % maxWidth;
+                wX += maxWidth;
+            }
+        }
+
+        prevPointX = curPointX;
+        prevPointY = curPointY;
+
+        curPointX = wX;
+        curPointY = wY;
+
+        repaint();
     }
 
     @Override
@@ -213,7 +312,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseEntered(MouseEvent e) {
-        System.out.println("Entered");
         mouseX = e.getX();
         mouseY = e.getY();
         repaint();
@@ -221,9 +319,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseExited(MouseEvent e) {
-        System.out.println("Exited");
-        mouseX = -1;
-        mouseY = -1;
+        mouseX = Integer.MIN_VALUE;
+        mouseY = Integer.MIN_VALUE;
         repaint();
     }
 
@@ -232,8 +329,11 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         dragging = true;
         mouseX = e.getX();
         mouseY = e.getY();
-        int dx = e.getX() - lastX;
 
+        int prevOffsetX = offsetX;
+        int prevOffsetY = offsetY;
+
+        int dx = e.getX() - lastX;
         int dy = e.getY() - lastY;
         offsetX += dx;
         offsetY += dy;
@@ -266,6 +366,17 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             // lastY = bottom;
         }
 
+        int dox = offsetX - prevOffsetX;
+        int doy = offsetY - prevOffsetY;
+        if (prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE) {
+            prevPointX += dox;
+            prevPointY += doy;
+        }
+        if (curPointX != Integer.MIN_VALUE && curPointY != Integer.MIN_VALUE) {
+            curPointX += dox;
+            curPointY += doy;
+        }
+
         repaint();
 
         // System.out.printf("x=%d, y=%d \r\n", offsetX, offsetY);
@@ -273,7 +384,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        System.out.println("Moved");
         mouseX = e.getX();
         mouseY = e.getY();
 
@@ -295,5 +405,30 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             frame.setVisible(true);
             // frame.setResizable(false);
         });
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        System.out.println("Key");
+        if (e.getKeyCode() == KeyEvent.VK_R) {
+            System.out.println("Key R");
+            prevPointX = Integer.MIN_VALUE;
+            prevPointY = Integer.MIN_VALUE;
+            curPointX = Integer.MIN_VALUE;
+            curPointY = Integer.MIN_VALUE;
+            repaint();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        // TODO Auto-generated method stub
+        // TODO Auto-generated method stub
+
     }
 }
