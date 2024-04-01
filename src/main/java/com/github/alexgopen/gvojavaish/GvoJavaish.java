@@ -37,37 +37,54 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private int lastX, lastY;
     private Tesseract tess;
 
+    private int mouseX = -1;
+    private int mouseY = -1;
+
+    private int worldX = -1;
+    private int worldY = -1;
+
+    boolean dragging;
+
     public GvoJavaish() {
         try {
-            imageMap = ImageIO.read(GvoJavaish.class.getResource("map.png"));
-            imageSurvey = ImageIO.read(GvoJavaish.class.getResource("examplesurvey.png"));
-            imageSurveyCrop = ImageIO.read(GvoJavaish.class.getResource("examplesurveycrop.png"));
+            String map = "map.png";
+            map = "uwogrid.png";
+            imageMap = ImageIO.read(GvoJavaish.class.getResource(map));
+
             imageWidth = imageMap.getWidth();
             imageHeight = imageMap.getHeight();
 
-            try {
-                File tmpFolder = LoadLibs.extractTessResources("win32-x86-64");
-                for (File f : tmpFolder.listFiles()) {
-                    System.load(f.getAbsolutePath());
+            boolean tessEnabled = false;
+
+            if (tessEnabled) {
+                try {
+                    imageSurvey = ImageIO.read(GvoJavaish.class.getResource("examplesurvey.png"));
+                    imageSurveyCrop = ImageIO.read(GvoJavaish.class.getResource("examplesurveycrop.png"));
+
+                    File tmpFolder = LoadLibs.extractTessResources("win32-x86-64");
+                    for (File f : tmpFolder.listFiles()) {
+                        System.load(f.getAbsolutePath());
+                    }
+
+                    tess = new Tesseract();
+                    tess.setLanguage("eng");
+                    tess.setOcrEngineMode(1);
+                    tess.setPageSegMode(7);
+                    Path dataDirectory = Paths.get(GvoJavaish.class.getResource("data").toURI());
+                    tess.setDatapath(dataDirectory.toString());
+
+                    tess.setVariable("tessedit_char_whitelist", "123456789,. ");
+                    System.out.println("OCRed:");
+
+                    System.out.println(tess.doOCR(ImageHelper.convertImageToGrayscale(imageSurveyCrop)));
+                    System.out.println("Expected:");
+                    System.out.println("15842,3284");
                 }
-
-                tess = new Tesseract();
-                tess.setLanguage("eng");
-                tess.setOcrEngineMode(1);
-                tess.setPageSegMode(7);
-                Path dataDirectory = Paths.get(GvoJavaish.class.getResource("data").toURI());
-                tess.setDatapath(dataDirectory.toString());
-
-                tess.setVariable("tessedit_char_whitelist", "123456789,. ");
-                System.out.println("OCRed:");
-
-                System.out.println(tess.doOCR(ImageHelper.convertImageToGrayscale(imageSurveyCrop)));
-                System.out.println("Expected:");
-                System.out.println("15842,3284");
+                catch (TesseractException | URISyntaxException te) {
+                    te.printStackTrace();
+                }
             }
-            catch (TesseractException | URISyntaxException te) {
-                te.printStackTrace();
-            }
+
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -96,27 +113,76 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             x += imageWidth;
         }
 
-        renderText(g);
+        // renderText(g);
+        renderHover(g);
+    }
 
+    public void renderHover(final Graphics g2) {
+
+        if (mouseX == -1 || mouseY == -1) {
+            return;
+        }
+
+        recalcWorldCoords();
+        String coords = String.format("%d, %d", worldX, worldY);
+
+        g2.setColor(new Color(0, 0, 0, 70));
+        g2.fillRect(mouseX, mouseY - 16, coords.length() * 8 + 8, 16);
+
+        Color textColor = Color.WHITE;
+        g2.setColor(textColor);
+        g2.setFont(new Font("Verdana", 1, 12));
+
+        g2.drawString(coords, mouseX + 4, mouseY - 4);
+    }
+
+    public void recalcWorldCoords() {
+        if (dragging) {
+            return;
+        }
+        float coordsPerPixel = 1000 / 125f;
+
+        worldX = mouseX - offsetX;
+        worldY = mouseY - offsetY;
+
+        int maxWidth = 16384;
+
+        float x = worldX / 250f;
+        x *= 1000;
+        worldX = (int) x;
+
+        float y = worldY / 250f;
+        y *= 1000;
+        worldY = (int) y;
+
+        if (worldX >= maxWidth) {
+            worldX = worldX % maxWidth;
+        }
+
+        if (worldX <= 0) {
+            worldX = worldX % maxWidth;
+            worldX += maxWidth;
+        }
     }
 
     public void renderText(final Graphics g2) {
-        Color textColor = Color.RED;
+
+        Color textColor = Color.MAGENTA;
 
         g2.setColor(textColor);
         g2.setFont(new Font("Verdana", 0, 20));
 
-        int textInitY = 35;
+        int textInitY = 30;
         int row = 0;
-        int inc = 40;
+        int inc = 30;
 
         // Zone text
         String zoneText = String.format("Zone: %s", "unknown");
         g2.drawString(zoneText, 15, textInitY + inc * row++);
 
-        // Coords
-        String coordText = "Coords: " + 0 + ", " + 0;
-        g2.drawString(coordText, 15, textInitY + inc * row++);
+        recalcWorldCoords();
+        String worldText = "Coords: " + worldX + ", " + worldY;
+        g2.drawString(worldText, 15, textInitY + inc * row++);
 
         // Speed text
         String speedText = String.format("Speed: %3.2f kt", 0.0f);
@@ -139,18 +205,33 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        dragging = false;
+        mouseX = e.getX();
+        mouseY = e.getY();
+        repaint();
     }
 
     @Override
     public void mouseEntered(MouseEvent e) {
+        System.out.println("Entered");
+        mouseX = e.getX();
+        mouseY = e.getY();
+        repaint();
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
+        System.out.println("Exited");
+        mouseX = -1;
+        mouseY = -1;
+        repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
+        dragging = true;
+        mouseX = e.getX();
+        mouseY = e.getY();
         int dx = e.getX() - lastX;
 
         int dy = e.getY() - lastY;
@@ -192,6 +273,11 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseMoved(MouseEvent e) {
+        System.out.println("Moved");
+        mouseX = e.getX();
+        mouseY = e.getY();
+
+        repaint();
     }
 
     @Override
