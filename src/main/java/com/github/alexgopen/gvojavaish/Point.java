@@ -1,0 +1,11 @@
+package com.github.alexgopen.gvojavaish;
+
+public class Point {
+    public int x = Integer.MIN_VALUE;
+    public int y = Integer.MIN_VALUE;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}
