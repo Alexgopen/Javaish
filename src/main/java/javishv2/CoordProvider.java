@@ -1,4 +1,4 @@
-package com.github.alexgopen.gvojavaish;
+package javishv2;
 
 import java.util.List;
 import java.util.Random;

@@ -36,6 +36,8 @@ import javax.swing.SwingUtilities;
 // Implement zoom
 // How is circumnavigation handled?  Do we render the points on every map
 
+// Do i put coords in another layer and overlay+tile it left and right?
+
 public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
@@ -46,6 +48,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private Point offsetPoint = new Point(0, 0);
     private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
     private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+
+    private Point neighbors = new Point(-1, 0);
 
     private boolean rclick = false;
 
@@ -74,6 +78,20 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         addKeyListener(this);
 
         this.coordProvider = new CoordProvider();
+    }
+
+    public void updateNeighbors() {
+        int left;
+        int right;
+
+        int rhOffset = offsetPoint.x * -1 + imageDimms.x / 2;
+
+        left = rhOffset / imageDimms.x - 1;
+        right = left + 1;
+
+        neighbors.x = left;
+        neighbors.y = right;
+
     }
 
     @Override
@@ -517,27 +535,80 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private Point convertWtoM(Point wCoord) {
         Point mCoord = new Point(0, 0);
 
-        // worldX = mouseX - offsetX;
-        // worldY = mouseY - offsetY;
-        //
-        // int maxWidth = 16384;
-        //
-        // float x = worldX / 250f;
-        // x *= 1000;
-        // worldX = (int) x;
-        //
-        // float y = worldY / 250f;
-        // y *= 1000;
-        // worldY = (int) y;
-        //
-        // if (worldX >= maxWidth) {
-        // worldX = worldX % maxWidth;
-        // }
-        //
-        // if (worldX <= 0) {
-        // worldX = worldX % maxWidth;
-        // worldX += maxWidth;
-        // }
+        /// invert
+
+        double xW = wCoord.x;
+        double yW = wCoord.y;
+
+        yW /= 1000.0;
+        yW *= 250.0;
+
+        xW /= 1000.0;
+        xW *= 250.0;
+
+        mCoord.y = (int) yW + offsetPoint.y;
+        mCoord.x = (int) xW + offsetPoint.x;
+
+        if (points != null && !points.isEmpty()) {
+            Point lastPoint = points.get(points.size() - 1);
+
+            int normXNew = mCoord.x % imageDimms.x;
+            int normXLast = lastPoint.x % imageDimms.x;
+
+            int yNew = mCoord.y;
+            int yLast = lastPoint.y;
+
+            int diffx = normXNew - normXLast;
+            int diffy = yNew - yLast;
+
+            mCoord.x = lastPoint.x + diffx;
+            mCoord.y = lastPoint.y + diffy;
+
+            // this.points changes values based on offset when dragged
+            System.out.printf("offsetPoint.x=%d, normXNew=%d, normXLast=%d, lastPoint.x=%d,mCoord.x=%d\r\n",
+                    offsetPoint.x, normXNew, normXLast, lastPoint.x, mCoord.x);
+        }
+        else {
+            int signum = offsetPoint.x / Math.abs(offsetPoint.x);
+            signum *= -1;
+            int fakeOffset = signum * (Math.abs(offsetPoint.x) + (imageDimms.x / 2));
+            int mapNeighbor = Math.abs(fakeOffset) / imageDimms.x;
+
+            int offsetFactor = signum * mapNeighbor;
+            int offset = offsetFactor * imageDimms.x - imageDimms.x;
+
+            int oldCoordX = mCoord.x;
+            int newCoordX = mCoord.x + offset;
+            int m1 = mCoord.x + offset - imageDimms.x;
+            int p2 = mCoord.x + offset + 2 * imageDimms.x;
+
+            mCoord.x = newCoordX;
+
+            if (points != null && !points.isEmpty()) {
+                Point lastPoint = points.get(points.size() - 1);
+
+                int oldDiff = Math.abs(oldCoordX - lastPoint.x);
+                int newDiff = Math.abs(newCoordX - lastPoint.x);
+                int m1Diff = Math.abs(m1 - lastPoint.x);
+                int p2Diff = Math.abs(p2 - lastPoint.x);
+
+                if (oldDiff < newDiff && oldDiff < m1Diff && oldDiff < p2Diff) {
+                    mCoord.x = oldCoordX;
+                }
+
+                if (newDiff < oldDiff && newDiff < m1Diff && newDiff < p2Diff) {
+                    mCoord.x = newCoordX;
+                }
+
+                if (m1Diff < oldDiff && m1Diff < newDiff && m1Diff < p2Diff) {
+                    mCoord.x = m1;
+                }
+
+                if (p2Diff < oldDiff && p2Diff < newDiff && p2Diff < m1Diff) {
+                    mCoord.x = p2;
+                }
+            }
+        }
 
         return mCoord;
     }

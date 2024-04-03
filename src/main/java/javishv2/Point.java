@@ -1,4 +1,4 @@
-package com.github.alexgopen.gvojavaish;
+package javishv2;
 
 public class Point {
     public int x = Integer.MIN_VALUE;
