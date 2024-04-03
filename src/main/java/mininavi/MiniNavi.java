@@ -1,4 +1,4 @@
-package com.github.alexgopen.gvojavaish;
+package mininavi;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -21,31 +21,19 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-// Ideas:
-// Points is mouse coords, we need it in world coords
-// Store time for each point
-// Get distance between points
-// Get speed between that segment
-// Get all distance/time for avg speed
-// Mark coords of each point
-// List current speed
-// Read coords for auto plotting
-// List total distance of current trip
-// List duration of current trip
-// Mark shipwreck hits (triangulation)
-// Implement zoom
-// How is circumnavigation handled?  Do we render the points on every map
-
-public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class MiniNavi extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
-    private CoordProvider coordProvider;
+    private int imageWidth, imageHeight;
+    private int offsetX = 0;
+    private int offsetY = 0;
+    private int lastX, lastY;
 
-    private Point imageDimms = new Point(0, 0);
-    private Point lastPoint = new Point(0, 0);
-    private Point offsetPoint = new Point(0, 0);
-    private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
-    private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    private int mouseX = Integer.MIN_VALUE;
+    private int mouseY = Integer.MIN_VALUE;
+
+    private int worldX = Integer.MIN_VALUE;
+    private int worldY = Integer.MIN_VALUE;
 
     private boolean rclick = false;
 
@@ -53,14 +41,13 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     boolean dragging;
 
-    public GvoJavaish() {
+    public MiniNavi() {
         try {
-            String map = "map.png";
-            map = "uwogrid.png";
-            imageMap = ImageIO.read(GvoJavaish.class.getResource(map));
+            String map = "uwoclean.png";
+            imageMap = ImageIO.read(MiniNavi.class.getResource(map));
 
-            imageDimms.x = imageMap.getWidth();
-            imageDimms.y = imageMap.getHeight();
+            imageWidth = imageMap.getWidth();
+            imageHeight = imageMap.getHeight();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -72,31 +59,27 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         addMouseListener(this);
         addMouseMotionListener(this);
         addKeyListener(this);
-
-        this.coordProvider = new CoordProvider();
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        int x = offsetPoint.x % imageDimms.x;
+        int x = offsetX % imageWidth;
         if (x > 0) {
-            x -= imageDimms.x;
+            x -= imageWidth;
         }
 
-        int y = offsetPoint.y;
+        int y = offsetY;
 
         while (x < getWidth()) {
-            g.drawImage(imageMap, (x - imageDimms.x), y, null);
+            g.drawImage(imageMap, (x - imageWidth), y, null);
             g.drawImage(imageMap, x, y, null);
-            g.drawImage(imageMap, (x + imageDimms.x), y, null);
-            x += imageDimms.x;
+            g.drawImage(imageMap, (x + imageWidth), y, null);
+            x += imageWidth;
         }
 
-        // renderText(g);
         renderHover(g);
-        // renderPoints(g);
         renderPointsList(g);
         renderHint(g);
     }
@@ -223,49 +206,48 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     public void renderHover(final Graphics g2) {
 
-        if (mousePoint.x == Integer.MIN_VALUE || mousePoint.y == Integer.MIN_VALUE) {
+        if (mouseX == Integer.MIN_VALUE || mouseY == Integer.MIN_VALUE) {
             return;
         }
 
         recalcWorldCoords();
-        String coords = String.format("%d, %d", worldPoint.x, worldPoint.y);
+        String coords = String.format("%d, %d", worldX, worldY);
 
         g2.setColor(new Color(0, 0, 0, 70));
-        g2.fillRect(mousePoint.x, mousePoint.y - 16, coords.length() * 8 + 8, 16);
+        g2.fillRect(mouseX, mouseY - 16, coords.length() * 8 + 8, 16);
 
         Color textColor = Color.WHITE;
         g2.setColor(textColor);
         g2.setFont(new Font("Verdana", 1, 12));
 
-        g2.drawString(coords, mousePoint.x + 4, mousePoint.y - 4);
+        g2.drawString(coords, mouseX + 4, mouseY - 4);
     }
 
     public void recalcWorldCoords() {
         if (dragging) {
             return;
         }
-        float coordsPerPixel = 1000 / 125f;
 
-        worldPoint.x = mousePoint.x - offsetPoint.x;
-        worldPoint.y = mousePoint.y - offsetPoint.y;
+        worldX = mouseX - offsetX;
+        worldY = mouseY - offsetY;
 
         int maxWidth = 16384;
 
-        float x = worldPoint.x / 250f;
+        float x = worldX / 250f;
         x *= 1000;
-        worldPoint.x = (int) x;
+        worldX = (int) x;
 
-        float y = worldPoint.y / 250f;
+        float y = worldY / 250f;
         y *= 1000;
-        worldPoint.y = (int) y;
+        worldY = (int) y;
 
-        if (worldPoint.x >= maxWidth) {
-            worldPoint.x = worldPoint.x % maxWidth;
+        if (worldX >= maxWidth) {
+            worldX = worldX % maxWidth;
         }
 
-        if (worldPoint.x <= 0) {
-            worldPoint.x = worldPoint.x % maxWidth;
-            worldPoint.x += maxWidth;
+        if (worldX <= 0) {
+            worldX = worldX % maxWidth;
+            worldX += maxWidth;
         }
     }
 
@@ -296,34 +278,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         g2.drawString(clearText, 22, textInitY + inc * row++);
     }
 
-    public void renderText(final Graphics g2) {
-
-        Color textColor = Color.MAGENTA;
-
-        g2.setColor(textColor);
-        g2.setFont(new Font("Verdana", 0, 20));
-
-        int textInitY = 30;
-        int row = 0;
-        int inc = 30;
-
-        // Zone text
-        String zoneText = String.format("Zone: %s", "unknown");
-        g2.drawString(zoneText, 15, textInitY + inc * row++);
-
-        recalcWorldCoords();
-        String worldText = "Coords: " + worldPoint.x + ", " + worldPoint.y;
-        g2.drawString(worldText, 15, textInitY + inc * row++);
-
-        // Speed text
-        String speedText = String.format("Speed: %3.2f kt", 0.0f);
-        g2.drawString(speedText, 15, textInitY + inc * row++);
-
-        // Rot text
-        String rotText = String.format("Rotation: %d deg", 0);
-        g2.drawString(rotText, 15, textInitY + inc * row++);
-    }
-
     @Override
     public void mouseClicked(MouseEvent e) {
 
@@ -331,8 +285,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint.x = e.getX();
-        lastPoint.y = e.getY();
+        lastX = e.getX();
+        lastY = e.getY();
 
         if (e.getButton() == MouseEvent.BUTTON3) {
             rclick = true;
@@ -340,13 +294,11 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             int mx = e.getX();
             int my = e.getY();
 
-            float coordsPerPixel = 1000 / 125f;
-
             int wX = -1;
             int wY = -1;
 
-            wX = mx;// - offsetX;
-            wY = my;// - offsetY;
+            wX = mx;
+            wY = my;
 
             boolean world = false;
             if (world) {
@@ -374,14 +326,13 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
             repaint();
         }
-
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
         dragging = false;
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mouseX = e.getX();
+        mouseY = e.getY();
 
         if (e.getButton() == MouseEvent.BUTTON3) {
             rclick = false;
@@ -392,73 +343,60 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
     @Override
     public void mouseEntered(MouseEvent e) {
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mouseX = e.getX();
+        mouseY = e.getY();
         repaint();
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
-        mousePoint.x = Integer.MIN_VALUE;
-        mousePoint.y = Integer.MIN_VALUE;
+        mouseX = Integer.MIN_VALUE;
+        mouseY = Integer.MIN_VALUE;
         repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         if (rclick) {
-            mousePoint.x = e.getX();
-            mousePoint.y = e.getY();
+            mouseX = e.getX();
+            mouseY = e.getY();
             repaint();
             return;
         }
 
         dragging = true;
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mouseX = e.getX();
+        mouseY = e.getY();
 
-        int prevOffsetX = offsetPoint.x;
-        int prevOffsetY = offsetPoint.y;
+        int prevOffsetX = offsetX;
+        int prevOffsetY = offsetY;
 
-        int dx = e.getX() - lastPoint.x;
-        int dy = e.getY() - lastPoint.y;
-        offsetPoint.x += dx;
-        offsetPoint.y += dy;
-        lastPoint.x = e.getX();
-        lastPoint.y = e.getY();
-
-        int bottomLimit = -1 * (imageDimms.y - this.getHeight());
-        if (offsetPoint.y <= bottomLimit) {
-            // offsetY = bottomLimit;
-            // lastY = bottomLimit;
-
-        }
-
-        // 2048 image
-        // 800 preferred
-
-        // y=0
-        // y=-1248
+        int dx = e.getX() - lastX;
+        int dy = e.getY() - lastY;
+        offsetX += dx;
+        offsetY += dy;
+        lastX = e.getX();
+        lastY = e.getY();
 
         int top = 0;
-        int bottom = -1 * (imageDimms.y - this.getHeight());
+        int bottom = -1 * (imageHeight - this.getHeight());
 
-        if (offsetPoint.y >= top) {
-            offsetPoint.y = top;
+        if (offsetY >= top) {
+            offsetY = top;
             dragging = false;
             recalcWorldCoords();
             dragging = true;
         }
 
-        if (offsetPoint.y <= bottom) {
-            offsetPoint.y = bottom;
+        if (offsetY <= bottom) {
+            offsetY = bottom;
             dragging = false;
             recalcWorldCoords();
             dragging = true;
         }
 
-        int dox = offsetPoint.x - prevOffsetX;
-        int doy = offsetPoint.y - prevOffsetY;
+        int dox = offsetX - prevOffsetX;
+        int doy = offsetY - prevOffsetY;
 
         for (Point p : points) {
             p.x += dox;
@@ -466,32 +404,28 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         }
 
         repaint();
-
-        // System.out.printf("x=%d, y=%d \r\n", offsetX, offsetY);
     }
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mouseX = e.getX();
+        mouseY = e.getY();
 
         repaint();
     }
 
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
-        // todo
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("UwoMap");
+            JFrame frame = new JFrame("MiniNavi");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.getContentPane().add(new GvoJavaish());
+            frame.getContentPane().add(new MiniNavi());
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
-            // frame.setResizable(false);
         });
     }
 
@@ -506,40 +440,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             points.clear();
             repaint();
         }
-        if (e.getKeyCode() == KeyEvent.VK_O) {
-            Point coord = this.coordProvider.getCoord();
-            Point converted = convertWtoM(coord);
-            this.points.add(converted);
-            repaint();
-        }
-    }
-
-    private Point convertWtoM(Point wCoord) {
-        Point mCoord = new Point(0, 0);
-
-        // worldX = mouseX - offsetX;
-        // worldY = mouseY - offsetY;
-        //
-        // int maxWidth = 16384;
-        //
-        // float x = worldX / 250f;
-        // x *= 1000;
-        // worldX = (int) x;
-        //
-        // float y = worldY / 250f;
-        // y *= 1000;
-        // worldY = (int) y;
-        //
-        // if (worldX >= maxWidth) {
-        // worldX = worldX % maxWidth;
-        // }
-        //
-        // if (worldX <= 0) {
-        // worldX = worldX % maxWidth;
-        // worldX += maxWidth;
-        // }
-
-        return mCoord;
     }
 
     @Override
