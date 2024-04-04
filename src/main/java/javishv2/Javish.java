@@ -7,6 +7,21 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+//Convert to virtualCoord which includes negatives
+//Determine closest of -1/0/+1 translation of previous virtualCoord
+//Store and Convert to realCoord for any display or speed calcs
+//Convert virtualCoord to screenCoord when displaying, factoring in offset
+//Do not actually modify the coord data by offset.
+//Only virtualCoord may have any notion of offset, by being negative
+//Make utility calls for conversion, and getting page translation offset
+//Make utility call for translation by applying offset
+//Make utility call for determining closest of 3 page options to previous point
+//
+// Better:
+// Draw points on every map
+// Render only the points which are on screen
+// Render any line segments which connect to onscreen points
+
 public class Javish extends JPanel {
 
     private static final long serialVersionUID = 7503572529729904779L;
