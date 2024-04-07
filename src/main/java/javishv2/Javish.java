@@ -21,6 +21,7 @@ import javax.swing.SwingUtilities;
 // Draw points on every map
 // Render only the points which are on screen
 // Render any line segments which connect to onscreen points
+// Add framerate cap for gpu usage
 
 public class Javish extends JPanel {
 

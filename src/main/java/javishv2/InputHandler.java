@@ -1,5 +1,9 @@
 package javishv2;
 
+import java.awt.AWTException;
+import java.awt.Rectangle;
+import java.awt.Robot;
+import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -7,6 +11,11 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public class InputHandler implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 
@@ -26,6 +35,18 @@ public class InputHandler implements MouseListener, MouseMotionListener, MouseWh
             Point coord = Javish.self.coordProvider.getCoord();
             Javish.self.gameMap.addCoord(coord);
             Javish.self.repaint();
+        }
+        if (e.getKeyCode() == KeyEvent.VK_P) {
+            try {
+                Robot robot = new Robot();
+                BufferedImage screenShot = robot
+                        .createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
+                ImageIO.write(screenShot, "PNG", new File("test.png"));
+                System.out.println("Screenshot taken");
+            }
+            catch (IOException | AWTException ex) {
+
+            }
         }
     }
 
