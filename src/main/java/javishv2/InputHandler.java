@@ -41,11 +41,12 @@ public class InputHandler implements MouseListener, MouseMotionListener, MouseWh
                 Robot robot = new Robot();
                 BufferedImage screenShot = robot
                         .createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
+                // TODO: In final version we don't want to write it
                 ImageIO.write(screenShot, "PNG", new File("test.png"));
                 System.out.println("Screenshot taken");
             }
             catch (IOException | AWTException ex) {
-
+                ex.printStackTrace();
             }
         }
     }
