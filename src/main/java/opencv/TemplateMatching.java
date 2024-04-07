@@ -9,6 +9,6 @@ public class TemplateMatching {
         // System.loadLibrary("opencv_java246");
         OpenCV.loadLocally();
         args = new String[3];
-        new MatchingDemo().run(args[0], args[1], args[2], Imgproc.TM_CCOEFF);
+        new MatchingDemo().run(args[0], args[1], args[2], Imgproc.TM_SQDIFF);
     }
 }
