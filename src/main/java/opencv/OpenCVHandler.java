@@ -121,6 +121,24 @@ class OpenCVHandler {
             String ocry = TessUtil.parseImage(coordY);
 
             System.out.printf("Split ocr: %s, %s\r\n", ocrx.trim(), ocry.trim());
+
+            int xWidth = coordX.getWidth();
+            int yWidth = coordY.getWidth();
+            BufferedImage tempX = coordX;
+            BufferedImage tempY = coordY;
+            System.out.println("X digits");
+            for (int i = 0; i < xWidth / 6; i++) {
+                BufferedImage digitPixels = cropImage(tempX, new Rectangle(i * 6, 0, 6, 13));
+                Digit d = new Digit(digitPixels);
+                d.printDigit();
+            }
+
+            System.out.println("Y digits");
+            for (int i = 0; i < yWidth / 6; i++) {
+                BufferedImage digitPixels = cropImage(tempY, new Rectangle(i * 6, 0, 6, 13));
+                Digit d = new Digit(digitPixels);
+                d.printDigit();
+            }
         }
         catch (IOException e) {
             // TODO Auto-generated catch block
