@@ -101,11 +101,87 @@ class OpenCVHandler {
             e.printStackTrace();
         }
 
+        try {
+            int commaWidth = 6;
+            BufferedImage commaImg;
+            commaImg = ImageIO
+                    .read(new File("C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/comma.png"));
+            Point commaOffset = findXYOfBWithinA(crop, commaImg);
+
+            BufferedImage coordX = cropImage(crop, new Rectangle(0, 0, (int) commaOffset.x - 1, crop.getHeight()));
+            BufferedImage coordY = cropImage(crop, new Rectangle((int) commaOffset.x + commaWidth - 1, 0,
+                    (int) (crop.getWidth() - (commaOffset.x + 6)) + 1, crop.getHeight()));
+
+            ImageIO.write(coordX, "PNG",
+                    new File("C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/coordX.png"));
+            ImageIO.write(coordY, "PNG",
+                    new File("C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/coordY.png"));
+
+            String ocrx = TessUtil.parseImage(coordX);
+            String ocry = TessUtil.parseImage(coordY);
+
+            System.out.printf("Split ocr: %s, %s\r\n", ocrx.trim(), ocry.trim());
+        }
+        catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         // Find comma within crop, split it, and OCR each half
 
         String ocred = TessUtil.parseImage(crop);
-        System.out.println("OCRed: " + ocred);
+        System.out.println("Combined ocr: " + ocred);
 
+    }
+
+    private Point findXYOfBWithinA(BufferedImage toSearch, BufferedImage toFind) {
+        Point p = new Point(-1, -1);
+        String toSearchPath = "C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/toSearch.png";
+        String toFindPath = "C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/toFind.png";
+
+        try {
+            ImageIO.write(toSearch, "PNG", new File(toSearchPath));
+            ImageIO.write(toFind, "PNG", new File(toFindPath));
+
+            Mat img = Imgcodecs.imread(toSearchPath, Imgcodecs.IMREAD_COLOR);
+            Mat templ = Imgcodecs.imread(toFindPath, Imgcodecs.IMREAD_COLOR);
+
+            // / Create the result matrix
+            int result_cols = img.cols() - templ.cols() + 1;
+            int result_rows = img.rows() - templ.rows() + 1;
+            Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
+
+            // / Do the Matching and Normalize
+            int match_method = Imgproc.TM_SQDIFF;
+            Imgproc.matchTemplate(img, templ, result, match_method);
+            Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1, new Mat());
+
+            // / Localizing the best match with minMaxLoc
+            MinMaxLocResult mmr = Core.minMaxLoc(result);
+
+            Point matchLoc;
+            if (match_method == Imgproc.TM_SQDIFF || match_method == Imgproc.TM_SQDIFF_NORMED) {
+                matchLoc = mmr.minLoc;
+            }
+            else {
+                matchLoc = mmr.maxLoc;
+            }
+
+            // / Show me what you got
+            Imgproc.rectangle(img, matchLoc, new Point(matchLoc.x + templ.cols(), matchLoc.y + templ.rows()),
+                    new Scalar(0, 255, 0));
+
+            System.out.printf("Comma at %d, %d\r\n", (int) matchLoc.x, (int) matchLoc.y);
+
+            p.x = (int) matchLoc.x;
+            p.y = (int) matchLoc.y;
+        }
+        catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return p;
     }
 
     private BufferedImage cropImage(BufferedImage src, Rectangle rect) {
