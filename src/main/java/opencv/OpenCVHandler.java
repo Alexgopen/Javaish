@@ -127,18 +127,28 @@ class OpenCVHandler {
             BufferedImage tempX = coordX;
             BufferedImage tempY = coordY;
             System.out.println("X digits");
+            String xString = "";
             for (int i = 0; i < xWidth / 6; i++) {
                 BufferedImage digitPixels = cropImage(tempX, new Rectangle(i * 6, 0, 6, 13));
                 Digit d = new Digit(digitPixels);
-                d.printDigit();
+                xString += d.getValue();
+                // d.printDigit();
             }
 
             System.out.println("Y digits");
+            String yString = "";
             for (int i = 0; i < yWidth / 6; i++) {
                 BufferedImage digitPixels = cropImage(tempY, new Rectangle(i * 6, 0, 6, 13));
                 Digit d = new Digit(digitPixels);
-                d.printDigit();
+                yString += d.getValue();
+                // d.printDigit();
             }
+
+            int xVal = Integer.parseInt(xString);
+            int yVal = Integer.parseInt(yString);
+
+            String digitParsed = xVal + ", " + yVal;
+            System.out.println("Digitparsed: " + digitParsed);
         }
         catch (IOException e) {
             // TODO Auto-generated catch block
