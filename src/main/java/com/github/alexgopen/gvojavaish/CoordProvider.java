@@ -3,6 +3,8 @@ package com.github.alexgopen.gvojavaish;
 import java.util.List;
 import java.util.Random;
 
+import opencv.OpenCVDemo;
+
 public class CoordProvider {
 
     private List<Point> testPoints;
@@ -26,7 +28,11 @@ public class CoordProvider {
     public Point getCoord() {
         // return new Point(15750, 3300);
         // return new Point(0, 0);
-        return getNextTestPoint();
+        // return getNextTestPoint();
+
+        org.opencv.core.Point p = OpenCVDemo.getCoord();
+        Point newp = new Point((int) p.x, (int) p.y);
+        return newp;
     }
 
     private Point getNextTestPoint() {

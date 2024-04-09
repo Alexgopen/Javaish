@@ -19,10 +19,11 @@ import org.opencv.core.Scalar;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import tess.TessUtil;
-
 class OpenCVHandler {
-    public void run(String inFile, String templateFile, String outFile, int match_method) {
+    public Point run(String inFile, String templateFile, String outFile, int match_method) {
+
+        Point retp = new Point(-1, -1);
+
         System.out.println("\nRunning Template Matching");
 
         inFile = "C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/examplesurvey.png";
@@ -117,11 +118,6 @@ class OpenCVHandler {
             ImageIO.write(coordY, "PNG",
                     new File("C:/Users/Alex/eclipse-workspace/gvojavaish/src/main/java/opencv/coordY.png"));
 
-            String ocrx = TessUtil.parseImage(coordX);
-            String ocry = TessUtil.parseImage(coordY);
-
-            System.out.printf("Split ocr: %s, %s\r\n", ocrx.trim(), ocry.trim());
-
             int xWidth = coordX.getWidth();
             int yWidth = coordY.getWidth();
             BufferedImage tempX = coordX;
@@ -149,17 +145,16 @@ class OpenCVHandler {
 
             String digitParsed = xVal + ", " + yVal;
             System.out.println("Digitparsed: " + digitParsed);
+
+            Point actualCoords = new Point(xVal, yVal);
+            retp = actualCoords;
         }
         catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
-        // Find comma within crop, split it, and OCR each half
-
-        String ocred = TessUtil.parseImage(crop);
-        System.out.println("Combined ocr: " + ocred);
-
+        return retp;
     }
 
     private Point findXYOfBWithinA(BufferedImage toSearch, BufferedImage toFind) {
