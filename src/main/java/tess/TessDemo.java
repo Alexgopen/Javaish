@@ -45,6 +45,12 @@ public class TessDemo extends JPanel implements MouseListener, MouseMotionListen
 
     boolean dragging;
 
+    public static String parseImage(BufferedImage img) {
+        String ret = "error";
+
+        return ret;
+    }
+
     public TessDemo() {
         try {
             String map = "map.png";
