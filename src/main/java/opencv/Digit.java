@@ -15,6 +15,7 @@ public class Digit {
     private static String sevenString = "000000011110000010000010000100000100000100001000001000001000000000000000000000";
     private static String eightString = "000000001100010010010010010010001100010010010010010010001100000000000000000000";
     private static String nineString = "000000001100010010010010010010001110000010010010010010001100000000000000000000";
+    private static String commaString = "000000000000000000000000000000000000000000000000011100000100011000000000000000";
 
     private static Digit zero = Digit.fromString(zeroString);
     private static Digit one = Digit.fromString(oneString);
@@ -26,6 +27,7 @@ public class Digit {
     private static Digit seven = Digit.fromString(sevenString);
     private static Digit eight = Digit.fromString(eightString);
     private static Digit nine = Digit.fromString(nineString);
+    private static Digit comma = Digit.fromString(commaString);
 
     // A list of points may be more efficient
     boolean[][] pixels;
@@ -88,38 +90,41 @@ public class Digit {
         return line;
     }
 
-    public int getValue() {
-        int ret = -1;
+    public String getValueString() {
+        String ret = "";
 
         if (this.equals(zero)) {
-            return 0;
+            return "" + 0;
         }
         if (this.equals(one)) {
-            return 1;
+            return "" + 1;
         }
         if (this.equals(two)) {
-            return 2;
+            return "" + 2;
         }
         if (this.equals(three)) {
-            return 3;
+            return "" + 3;
         }
         if (this.equals(four)) {
-            return 4;
+            return "" + 4;
         }
         if (this.equals(five)) {
-            return 5;
+            return "" + 5;
         }
         if (this.equals(six)) {
-            return 6;
+            return "" + 6;
         }
         if (this.equals(seven)) {
-            return 7;
+            return "" + 7;
         }
         if (this.equals(eight)) {
-            return 8;
+            return "" + 8;
         }
         if (this.equals(nine)) {
-            return 9;
+            return "" + 9;
+        }
+        if (this.equals(comma)) {
+            return ",";
         }
 
         return ret;
