@@ -5,17 +5,20 @@ import java.awt.image.BufferedImage;
 
 public class Digit {
 
-    private static String zeroString = "000000001100010010010010010010010010010010010010010010001100000000000000000000";
-    private static String oneString = "000000000100001100000100000100000100000100000100000100000100000000000000000000";
-    private static String twoString = "000000001100010010010010000010000100001000001000010000011110000000000000000000";
-    private static String threeString = "000000001100010010010010000010001100000010010010010010001100000000000000000000";
-    private static String fourString = "000000000010000110000110001010001010010010011111000010000010000000000000000000";
-    private static String fiveString = "000000011110010000010000011100010010000010010010010010001100000000000000000000";
-    private static String sixString = "000000001100010010010010010000011100010010010010010010001100000000000000000000";
-    private static String sevenString = "000000011110000010000010000100000100000100001000001000001000000000000000000000";
-    private static String eightString = "000000001100010010010010010010001100010010010010010010001100000000000000000000";
-    private static String nineString = "000000001100010010010010010010001110000010010010010010001100000000000000000000";
-    private static String commaString = "000000000000000000000000000000000000000000000000011100000100011000000000000000";
+    public static final int WIDTH = 6;
+    public static final int HEIGHT = 10;
+
+    private static String zeroString = "001100010010010010010010010010010010010010010010001100000000";
+    private static String oneString = "000100001100000100000100000100000100000100000100000100000000";
+    private static String twoString = "001100010010010010000010000100001000001000010000011110000000";
+    private static String threeString = "001100010010010010000010001100000010010010010010001100000000";
+    private static String fourString = "000010000110000110001010001010010010011111000010000010000000";
+    private static String fiveString = "011110010000010000011100010010000010010010010010001100000000";
+    private static String sixString = "001100010010010010010000011100010010010010010010001100000000";
+    private static String sevenString = "011110000010000010000100000100000100001000001000001000000000";
+    private static String eightString = "001100010010010010010010001100010010010010010010001100000000";
+    private static String nineString = "001100010010010010010010001110000010010010010010001100000000";
+    private static String commaString = "000000000000000000000000000000000000000000011100000100011000";
 
     private static Digit zero = Digit.fromString(zeroString);
     private static Digit one = Digit.fromString(oneString);
@@ -33,22 +36,22 @@ public class Digit {
     boolean[][] pixels;
 
     private Digit() {
-        pixels = new boolean[6][13];
+        pixels = new boolean[WIDTH][HEIGHT];
     }
 
     public Digit(BufferedImage img) {
-        if (img.getWidth() != 6 || img.getHeight() != 13) {
+        if (img.getWidth() != WIDTH || img.getHeight() != HEIGHT) {
             throw new IllegalArgumentException("Bad digit image dimms: " + img.getWidth() + ", " + img.getHeight());
         }
 
-        pixels = new boolean[6][13];
+        pixels = new boolean[WIDTH][HEIGHT];
 
         this.fillPixels(img);
     }
 
     private void fillPixels(BufferedImage img) {
-        for (int y = 0; y < 13; y++) {
-            for (int x = 0; x < 6; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
                 if (img.getRGB(x, y) == Color.WHITE.getRGB()) {
                     pixels[x][y] = true;
                 }
@@ -56,29 +59,10 @@ public class Digit {
         }
     }
 
-    public void printDigit() {
-        System.out.println("Printing digit:");
-        System.out.println(this.getDigitString());
-        String line = "";
-
-        for (int y = 0; y < 13; y++) {
-            for (int x = 0; x < 6; x++) {
-                if (pixels[x][y]) {
-                    line += "1";
-                }
-                else {
-                    line += "0";
-                }
-            }
-            System.out.println(line);
-            line = "";
-        }
-    }
-
     public String getDigitString() {
         String line = "";
-        for (int y = 0; y < 13; y++) {
-            for (int x = 0; x < 6; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
                 if (pixels[x][y]) {
                     line += "1";
                 }
@@ -133,14 +117,14 @@ public class Digit {
     private static Digit fromString(String digitString) {
         Digit d = new Digit();
 
-        if (digitString.length() != 6 * 13) {
+        if (digitString.length() != WIDTH * HEIGHT) {
             throw new IllegalArgumentException(
-                    "Invalid length digit string: " + digitString.length() + ". Expected: " + 6 * 13);
+                    "Invalid length digit string: " + digitString.length() + ". Expected: " + WIDTH * HEIGHT);
         }
 
-        for (int y = 0; y < 13; y++) {
-            for (int x = 0; x < 6; x++) {
-                if ('1' == digitString.charAt(6 * y + x)) {
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
+                if ('1' == digitString.charAt(WIDTH * y + x)) {
                     d.pixels[x][y] = true;
                 }
                 else {
@@ -155,8 +139,8 @@ public class Digit {
     public static boolean equals(Digit a, Digit b) {
         boolean allMatch = true;
 
-        for (int y = 0; y < 13; y++) {
-            for (int x = 0; x < 6; x++) {
+        for (int y = 0; y < HEIGHT; y++) {
+            for (int x = 0; x < WIDTH; x++) {
                 allMatch = allMatch && a.pixels[x][y] == b.pixels[x][y];
                 if (!allMatch) {
                     break;

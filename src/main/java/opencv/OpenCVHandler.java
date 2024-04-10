@@ -84,9 +84,10 @@ class OpenCVHandler {
         Imgcodecs.imwrite(outFile, img);
 
         int cropX = (int) (matchLoc.x + 66);
-        int cropY = (int) (matchLoc.y + 5);
+        int cropY = (int) (matchLoc.y + 6);
         int width = 60;
-        int height = 13;
+        int height = Digit.HEIGHT;
+        int digitWidth = Digit.WIDTH;
 
         BufferedImage crop = cropImage(screenShot, new Rectangle(cropX, cropY, width, height));
 
@@ -103,8 +104,8 @@ class OpenCVHandler {
 
         System.out.println("AllDigits");
         String allString = "";
-        for (int i = 0; i < crop.getWidth() / 6; i++) {
-            BufferedImage digitPixels = cropImage(crop, new Rectangle(i * 6, 0, 6, 13));
+        for (int i = 0; i < crop.getWidth() / digitWidth; i++) {
+            BufferedImage digitPixels = cropImage(crop, new Rectangle(i * digitWidth, 0, digitWidth, height));
             Digit d = new Digit(digitPixels);
             allString += d.getValueString();
             // d.printDigit();
