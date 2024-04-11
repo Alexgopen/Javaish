@@ -89,7 +89,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             public void run() {
                 while (true) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(250);
                         Point coord = GvoJavaish.coordProvider.getCoord();
                         Point converted = convertWtoM(coord);
                         int dist = 999;
@@ -97,13 +97,14 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                         if (GvoJavaish.gvojavaish.points.size() > 0) {
                             Point lastCoord = GvoJavaish.gvojavaish.points.get(GvoJavaish.gvojavaish.points.size() - 1);
 
-                            dist = (int) Math.sqrt(converted.x * lastCoord.x + converted.y + lastCoord.y);
+                            dist = (int) Math.sqrt(
+                                    Math.pow(converted.x - lastCoord.x, 2) + Math.pow(converted.y - lastCoord.y, 2));
                         }
 
                         long currentTime = System.currentTimeMillis();
                         long timeDelta = currentTime - GvoJavaish.lastTime;
                         System.err.println("Dist=" + dist + ", delta=" + timeDelta);
-                        if (timeDelta > 3000 || dist > 50) {
+                        if (timeDelta > 1000 && dist >= 2) {
 
                             GvoJavaish.lastTime = currentTime;
                             GvoJavaish.gvojavaish.points.add(converted);
@@ -186,7 +187,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             }
 
             g2.setColor(new Color(255, 0, 0, 255));
-            g2.fillOval(p.x - 3, p.y - 3, 6, 6);
+            g2.fillOval(p.x - 1, p.y - 1, 2, 2);
         }
 
         if (prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE) {
@@ -194,7 +195,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             int transY = prevPointY;
 
             g2.setColor(new Color(255, 0, 0, 255));
-            g2.fillOval(transX - 3, transY - 3, 6, 6);
+            g2.fillOval(transX - 1, transY - 1, 2, 2);
         }
         if (curPointX != Integer.MIN_VALUE && curPointY != Integer.MIN_VALUE) {
             int transX = curPointX;
@@ -211,6 +212,12 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
             int xDiff = curPointX - prevPointX;
             int yDiff = curPointY - prevPointY;
+
+            if (points.size() > 10) {
+                xDiff = curPointX - points.get(points.size() - 10).x;
+                yDiff = curPointY - points.get(points.size() - 10).y;
+            }
+
             int maxFactorX = 0;
             int maxFactorY = 0;
 
