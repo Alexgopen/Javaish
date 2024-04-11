@@ -107,8 +107,7 @@ class OpenCVHandler {
         for (int i = 0; i < crop.getWidth() / digitWidth; i++) {
             BufferedImage digitPixels = cropImage(crop, new Rectangle(i * digitWidth, 0, digitWidth, height));
             Digit d = new Digit(digitPixels);
-            allString += d.getValueString();
-            // d.printDigit();
+            allString += d.getString();
         }
         System.out.println(allString);
 

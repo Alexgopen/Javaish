@@ -41,7 +41,7 @@ import javax.swing.SwingUtilities;
 public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
-    private CoordProvider coordProvider;
+    private static CoordProvider coordProvider;
 
     private Point imageDimms = new Point(0, 0);
     private Point lastPoint = new Point(0, 0);
@@ -56,6 +56,10 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private List<Point> points = new ArrayList<>();
 
     boolean dragging;
+
+    private static GvoJavaish gvojavaish;
+
+    private static long lastTime = -1;
 
     public GvoJavaish() {
         try {
@@ -77,7 +81,44 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         addMouseMotionListener(this);
         addKeyListener(this);
 
-        this.coordProvider = new CoordProvider();
+        GvoJavaish.coordProvider = new CoordProvider();
+        GvoJavaish.gvojavaish = this;
+
+        Thread coordThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(1000);
+                        Point coord = GvoJavaish.coordProvider.getCoord();
+                        Point converted = convertWtoM(coord);
+                        int dist = 999;
+
+                        if (GvoJavaish.gvojavaish.points.size() > 0) {
+                            Point lastCoord = GvoJavaish.gvojavaish.points.get(GvoJavaish.gvojavaish.points.size() - 1);
+
+                            dist = (int) Math.sqrt(converted.x * lastCoord.x + converted.y + lastCoord.y);
+                        }
+
+                        long currentTime = System.currentTimeMillis();
+                        long timeDelta = currentTime - GvoJavaish.lastTime;
+                        System.err.println("Dist=" + dist + ", delta=" + timeDelta);
+                        if (timeDelta > 3000 || dist > 50) {
+
+                            GvoJavaish.lastTime = currentTime;
+                            GvoJavaish.gvojavaish.points.add(converted);
+                            GvoJavaish.gvojavaish.repaint();
+                        }
+
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+            }
+        });
+        coordThread.start();
     }
 
     public void updateNeighbors() {
@@ -145,7 +186,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             }
 
             g2.setColor(new Color(255, 0, 0, 255));
-            g2.fillOval(p.x - 5, p.y - 5, 10, 10);
+            g2.fillOval(p.x - 3, p.y - 3, 6, 6);
         }
 
         if (prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE) {
@@ -153,14 +194,14 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             int transY = prevPointY;
 
             g2.setColor(new Color(255, 0, 0, 255));
-            g2.fillOval(transX - 5, transY - 5, 10, 10);
+            g2.fillOval(transX - 3, transY - 3, 6, 6);
         }
         if (curPointX != Integer.MIN_VALUE && curPointY != Integer.MIN_VALUE) {
             int transX = curPointX;
             int transY = curPointY;
 
             g2.setColor(new Color(0, 255, 0, 255));
-            g2.fillOval(transX - 5, transY - 5, 10, 10);
+            g2.fillOval(transX - 3, transY - 3, 6, 6);
         }
 
         if ((prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE)
@@ -234,7 +275,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             int transY = curPointY;
 
             g2.setColor(new Color(0, 255, 0, 255));
-            g2.fillOval(transX - 5, transY - 5, 10, 10);
+            g2.fillOval(transX - 3, transY - 3, 6, 6);
         }
 
     }
