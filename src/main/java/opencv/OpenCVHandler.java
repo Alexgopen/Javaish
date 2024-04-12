@@ -19,7 +19,7 @@ import org.opencv.imgproc.Imgproc;
 
 import windowCapture.WindowCapture;
 
-class OpenCVHandler {
+public class OpenCVHandler {
     public Point run() {
 
         Point retp = new Point(-1, -1);

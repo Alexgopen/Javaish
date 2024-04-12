@@ -17,26 +17,26 @@ import com.sun.jna.win32.StdCallLibrary;
 
 public class WindowCapture {
     public static void main(String[] args) throws AWTException, IOException {
+        BufferedImage crop = getCoordCrop();
+        ImageIO.write(crop, "png", new File("crop.png"));
+        System.out.println("Wrote crop");
+    }
 
-        int hWnd = User32.instance.FindWindowA(null, "Uncharted Waters Online");
-        WindowInfo w = getWindowInfo(hWnd);
+    public static BufferedImage getCoordCrop() throws AWTException, IOException {
+        BufferedImage coordCrop = null;
 
-        // User32.instance.SetForegroundWindow(w.hwnd);
+        BufferedImage ss = getUwoWindowScreenShot();
+        Rectangle rect = new Rectangle(ss.getWidth() - 72, ss.getHeight() - 272, 60, 10);
 
-        // TODO: this is undesireable
-        int errX1 = 5;
-        int errX2 = 5;
-        int errY1 = 1;
-        int errY2 = 5;
-        int x = w.rect.left + errX1;
-        int y = w.rect.top + errY1;
-        int width = w.rect.right - w.rect.left - errX1 - errX2;
-        int height = w.rect.bottom - w.rect.top - errY1 - errY2;
-        Rectangle dimms = new Rectangle(x, y, width, height);
+        try {
+            BufferedImage crop = cropImage(ss, rect);
+            coordCrop = crop;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
-        ImageIO.write(createScreenCapture, "png", new File("screen.png"));
-        System.out.println("Wrote screen.png");
+        return coordCrop;
     }
 
     public static BufferedImage getUwoWindowScreenShot() throws AWTException {
@@ -58,6 +58,11 @@ public class WindowCapture {
 
         BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
         return createScreenCapture;
+    }
+
+    private static BufferedImage cropImage(BufferedImage src, Rectangle rect) {
+        BufferedImage dest = src.getSubimage(rect.x, rect.y, rect.width, rect.height);
+        return dest;
     }
 
     public static WindowInfo getWindowInfo(int hWnd) {
