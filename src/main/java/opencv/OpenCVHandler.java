@@ -2,8 +2,6 @@ package opencv;
 
 import java.awt.AWTException;
 import java.awt.Rectangle;
-import java.awt.Robot;
-import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +16,8 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+
+import windowCapture.WindowCapture;
 
 class OpenCVHandler {
     public Point run() {
@@ -35,9 +35,7 @@ class OpenCVHandler {
 
         BufferedImage screenShot = null;
         try {
-            Robot robot = new Robot();
-            screenShot = robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
-            // TODO: In final version we don't want to write it
+            screenShot = WindowCapture.getUwoWindowScreenShot();
             ImageIO.write(screenShot, "PNG", new File(screenShotFileName));
             System.out.println("Screenshot taken");
         }

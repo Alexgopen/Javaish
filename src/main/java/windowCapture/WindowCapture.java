@@ -21,7 +21,7 @@ public class WindowCapture {
         int hWnd = User32.instance.FindWindowA(null, "Uncharted Waters Online");
         WindowInfo w = getWindowInfo(hWnd);
 
-        User32.instance.SetForegroundWindow(w.hwnd);
+        // User32.instance.SetForegroundWindow(w.hwnd);
 
         // TODO: this is undesireable
         int errX1 = 5;
@@ -43,7 +43,7 @@ public class WindowCapture {
         int hWnd = User32.instance.FindWindowA(null, "Uncharted Waters Online");
         WindowInfo w = getWindowInfo(hWnd);
 
-        User32.instance.SetForegroundWindow(w.hwnd);
+        // User32.instance.SetForegroundWindow(w.hwnd);
 
         // TODO: this is undesireable
         int errX1 = 5;
