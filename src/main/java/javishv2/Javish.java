@@ -7,6 +7,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import utils.CoordProvider;
+
 //Convert to virtualCoord which includes negatives
 //Determine closest of -1/0/+1 translation of previous virtualCoord
 //Store and Convert to realCoord for any display or speed calcs

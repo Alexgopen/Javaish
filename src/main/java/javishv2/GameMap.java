@@ -8,6 +8,8 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import utils.Point;
+
 public class GameMap {
     private BufferedImage imageMap;
 

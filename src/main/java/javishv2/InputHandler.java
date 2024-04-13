@@ -17,6 +17,8 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import utils.Point;
+
 public class InputHandler implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 
     @Override
@@ -32,9 +34,17 @@ public class InputHandler implements MouseListener, MouseMotionListener, MouseWh
             Javish.self.repaint();
         }
         if (e.getKeyCode() == KeyEvent.VK_O) {
-            Point coord = Javish.self.coordProvider.getCoord();
-            Javish.self.gameMap.addCoord(coord);
-            Javish.self.repaint();
+
+            try {
+                Point coord;
+                coord = Javish.self.coordProvider.getCoord();
+                Javish.self.gameMap.addCoord(coord);
+                Javish.self.repaint();
+            }
+            catch (Exception e1) {
+                e1.printStackTrace();
+            }
+
         }
         if (e.getKeyCode() == KeyEvent.VK_P) {
             try {

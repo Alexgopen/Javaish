@@ -21,6 +21,9 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import utils.CoordProvider;
+import utils.Point;
+
 // Ideas:
 // Points is mouse coords, we need it in world coords
 // Store time for each point
@@ -354,7 +357,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         g2.drawString(dragText, 22, textInitY + inc * row++);
 
         // Plot text
-        String plotText = String.format("Right-Click to plot");
+        String plotText = String.format("Right-Click for settings");
         g2.drawString(plotText, 22, textInitY + inc * row++);
 
         // Clear text
@@ -402,43 +405,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
         if (e.getButton() == MouseEvent.BUTTON3) {
             rclick = true;
-
-            int mx = e.getX();
-            int my = e.getY();
-
-            float coordsPerPixel = 1000 / 125f;
-
-            int wX = -1;
-            int wY = -1;
-
-            wX = mx;// - offsetX;
-            wY = my;// - offsetY;
-
-            boolean world = false;
-            if (world) {
-                int maxWidth = 16384;
-
-                float x = wX / 250f;
-                x *= 1000;
-                wX = (int) x;
-
-                float y = wY / 250f;
-                y *= 1000;
-                wY = (int) y;
-
-                if (wX >= maxWidth) {
-                    wX = wX % maxWidth;
-                }
-
-                if (wX <= 0) {
-                    wX = wX % maxWidth;
-                    wX += maxWidth;
-                }
-            }
-
-            points.add(new Point(wX, wY));
-
-            repaint();
         }
 
     }
@@ -571,17 +537,6 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         if (e.getKeyCode() == KeyEvent.VK_R) {
             points.clear();
             repaint();
-        }
-        if (e.getKeyCode() == KeyEvent.VK_O) {
-            try {
-                Point coord = this.coordProvider.getCoord();
-                Point converted = convertWtoM(coord);
-                this.points.add(converted);
-                repaint();
-            }
-            catch (Exception ex) {
-                ex.printStackTrace();
-            }
         }
     }
 
