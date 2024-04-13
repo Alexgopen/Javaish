@@ -85,7 +85,7 @@ public class WindowCapture {
         public static final int MIN_ALL = 0x1a3;
         public static final int MIN_ALL_UNDO = 0x1a0;
 
-        final User32 instance = Native.loadLibrary("user32", User32.class);
+        final User32 instance = Native.load("user32", User32.class);
 
         boolean EnumWindows(WndEnumProc wndenumproc, int lParam);
 

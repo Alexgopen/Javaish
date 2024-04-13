@@ -573,10 +573,15 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             repaint();
         }
         if (e.getKeyCode() == KeyEvent.VK_O) {
-            Point coord = this.coordProvider.getCoord();
-            Point converted = convertWtoM(coord);
-            this.points.add(converted);
-            repaint();
+            try {
+                Point coord = this.coordProvider.getCoord();
+                Point converted = convertWtoM(coord);
+                this.points.add(converted);
+                repaint();
+            }
+            catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 

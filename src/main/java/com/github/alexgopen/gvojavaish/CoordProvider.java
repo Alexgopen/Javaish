@@ -1,9 +1,12 @@
 package com.github.alexgopen.gvojavaish;
 
+import java.awt.AWTException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-import opencv.OpenCVDemo;
+import coordextract.CoordExtractor;
+import windowCapture.WindowCapture;
 
 public class CoordProvider {
 
@@ -25,14 +28,14 @@ public class CoordProvider {
         yDir = r.nextBoolean() ? 1 : -1;
     }
 
-    public Point getCoord() {
+    public Point getCoord() throws AWTException, IOException {
         // return new Point(15750, 3300);
         // return new Point(0, 0);
         // return getNextTestPoint();
 
-        org.opencv.core.Point p = OpenCVDemo.getCoord();
-        Point newp = new Point((int) p.x, (int) p.y);
-        return newp;
+        Point p = CoordExtractor.getPoint(WindowCapture.getCoordCrop());
+
+        return p;
     }
 
     private Point getNextTestPoint() {
