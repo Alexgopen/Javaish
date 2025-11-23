@@ -40,20 +40,20 @@ public class WindowCapture {
     }
 
     public static BufferedImage getUwoWindowScreenShot() throws AWTException {
-        int hWnd = User32.instance.FindWindowA(null, "Uncharted Waters Online");
-        WindowInfo w = getWindowInfo(hWnd);
-
-        // User32.instance.SetForegroundWindow(w.hwnd);
+    	X11WindowUtil.WindowInfo w = X11WindowUtil.findWindowByTitle("Uncharted Waters Online");
+    	if (w == null) {
+    	    throw new RuntimeException("Window not found!");
+    	}
 
         // TODO: this is undesireable
         int errX1 = 5;
         int errX2 = 5;
         int errY1 = 1;
         int errY2 = 5;
-        int x = w.rect.left + errX1;
-        int y = w.rect.top + errY1;
-        int width = w.rect.right - w.rect.left - errX1 - errX2;
-        int height = w.rect.bottom - w.rect.top - errY1 - errY2;
+        int x = w.x + errX1;
+        int y = w.y + errY1;
+        int width  = w.width  - errX1 - errX2;
+        int height = w.height - errY1 - errY2;
         Rectangle dimms = new Rectangle(x, y, width, height);
 
         BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
