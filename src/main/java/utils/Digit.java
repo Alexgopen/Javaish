@@ -50,6 +50,65 @@ public class Digit {
 
         this.scanPixels(img);
     }
+    
+    public long getLongValue()
+    {
+    	return this.longValue;
+    }
+    
+    public boolean isValid()
+    {
+    	return lookup.get(this.longValue) != null;
+    }
+    
+    public String getAsciiArt()
+    {
+    	String art = "";
+        long v = this.longValue;
+
+        for (int y = 0; y < Digit.HEIGHT; y++)
+        {
+            StringBuilder line = new StringBuilder();
+
+            for (int x = 0; x < Digit.WIDTH; x++)
+            {
+                // Compute which bit we are reading:
+                // Most significant bit corresponds to (0,0)
+                int bitIndex = (Digit.HEIGHT * Digit.WIDTH - 1) - (y * Digit.WIDTH + x);
+
+                boolean isWhite = ((v >>> bitIndex) & 1L) == 1L;
+
+                line.append(isWhite ? '#' : '_');
+            }
+
+            art += line.toString() + "\r\n";
+        }
+        
+        return art;
+    }
+    
+    public void printAsciiArt()
+    {
+        long v = this.longValue;
+
+        for (int y = 0; y < Digit.HEIGHT; y++)
+        {
+            StringBuilder line = new StringBuilder();
+
+            for (int x = 0; x < Digit.WIDTH; x++)
+            {
+                // Compute which bit we are reading:
+                // Most significant bit corresponds to (0,0)
+                int bitIndex = (Digit.HEIGHT * Digit.WIDTH - 1) - (y * Digit.WIDTH + x);
+
+                boolean isWhite = ((v >>> bitIndex) & 1L) == 1L;
+
+                line.append(isWhite ? '#' : '_');
+            }
+
+            System.out.println(line.toString());
+        }
+    }
 
     private void scanPixels(BufferedImage img) {
         String digitChain = "";

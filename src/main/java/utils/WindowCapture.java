@@ -26,7 +26,14 @@ public class WindowCapture {
         BufferedImage coordCrop = null;
 
         BufferedImage ss = getUwoWindowScreenShot();
-        Rectangle rect = new Rectangle(ss.getWidth() - 72, ss.getHeight() - 272, 60, 10);
+        ImageIO.write(ss, "png", new File("uwoss.png"));
+        
+        // This is not a safe way to crop the coordinates
+        int arbitraryLeftCrop = 63;
+        int arbitraryUpCrop = 266;
+        int coordSectionWidth = 60;
+        int coordSectionHeight = 10;
+        Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop, coordSectionWidth, coordSectionHeight);
 
         try {
             BufferedImage crop = cropImage(ss, rect);

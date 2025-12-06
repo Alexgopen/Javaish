@@ -1,6 +1,7 @@
 package utils;
 
 import java.awt.AWTException;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
@@ -30,7 +31,9 @@ public class CoordProvider {
         // return new Point(0, 0);
         // return getNextTestPoint();
 
-        Point p = CoordExtractor.getPoint(WindowCapture.getCoordCrop());
+    	BufferedImage coordCrop = WindowCapture.getCoordCrop();
+    	
+        Point p = CoordExtractor.getPoint(coordCrop);
 
         return p;
     }

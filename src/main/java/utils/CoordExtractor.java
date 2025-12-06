@@ -2,9 +2,18 @@ package utils;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public class CoordExtractor {
-    public static Point getPoint(BufferedImage coordCrop) {
+	public static void main(String[] args) throws Exception
+	{
+		
+	}
+	
+    public static Point getPoint(BufferedImage coordCrop) throws IOException {
         Point p = null;
 
         int digitWidth = Digit.WIDTH;
@@ -13,8 +22,19 @@ public class CoordExtractor {
         String allString = "";
         for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
             BufferedImage digitPixels = cropImage(coordCrop, new Rectangle(i * digitWidth, 0, digitWidth, height));
+            ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
+            
             Digit d = new Digit(digitPixels);
-            allString += d.getString();
+            
+            if (d.isValid())
+            {
+            	allString += d.getString();
+            }
+            else
+            {
+            	System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i, d.getLongValue());
+            }
+            
         }
         System.out.println(allString);
 
