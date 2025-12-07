@@ -9,6 +9,8 @@ import javax.imageio.ImageIO;
 
 import com.github.alexgopen.gvojavaish.GvoJavaish;
 
+import exceptions.CoordNotFoundException;
+
 public class CoordExtractor {
 	
 	public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
@@ -62,6 +64,8 @@ public class CoordExtractor {
         	if (!silent)
         	{
         		System.out.println("No coordinates found.");
+        		WindowCapture.resetPrevFoundCoords();
+        		throw new CoordNotFoundException();
         	}
         }
 

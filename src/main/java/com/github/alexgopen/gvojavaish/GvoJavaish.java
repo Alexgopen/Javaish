@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -21,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import exceptions.CoordNotFoundException;
 import utils.CoordProvider;
 import utils.Point;
 
@@ -51,6 +53,9 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private Point offsetPoint = new Point(0, 0);
     private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
     private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    
+    // Seville
+    private Point initialCenterCoord = new Point(15903, 3271);
 
     private Point neighbors = new Point(-1, 0);
 
@@ -91,10 +96,13 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
         setFocusable(true);
         requestFocus();
-        setPreferredSize(new Dimension(1200, 800));
+        setPreferredSize(new Dimension(800, 600));
         addMouseListener(this);
         addMouseMotionListener(this);
         addKeyListener(this);
+        
+        // Auto-center before first render
+        centerOnInitialCoord();
 
         GvoJavaish.coordProvider = new CoordProvider();
         GvoJavaish.gvojavaish = this;
@@ -129,6 +137,10 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                         }
 
                     }
+                    catch (CoordNotFoundException cnfe)
+                    {
+                    	System.err.println("Coord not found.");
+                    }
                     catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -139,6 +151,30 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         coordThread.start();
     }
 
+    private void centerOnInitialCoord() {
+        // convert initialCenterCoord from world to map pixels
+        double xW = initialCenterCoord.x / 1000.0 * 250.0;
+        double yW = initialCenterCoord.y / 1000.0 * 250.0;
+
+        int centerX = getPreferredSize().width / 2;
+        int centerY = getPreferredSize().height / 2;
+
+        int desiredOffsetX = centerX - (int) xW;
+        int desiredOffsetY = centerY - (int) yW;
+
+        // clamp vertical offset
+        int topLimit = 0;
+        int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
+
+        if (desiredOffsetY > topLimit) desiredOffsetY = topLimit;
+        if (desiredOffsetY < bottomLimit) desiredOffsetY = bottomLimit;
+
+        offsetPoint.x = desiredOffsetX;
+        offsetPoint.y = desiredOffsetY;
+
+        System.out.println("Initial view centered at " + initialCenterCoord + " with offset " + offsetPoint);
+    }
+    
     public void updateNeighbors() {
         int left;
         int right;
@@ -311,27 +347,53 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
         if (player != null && isOffscreen(player)) {
             Point edge = getEdgePoint(player);
-            g2.setColor(Color.GREEN);
-            int size = 8;
+            int size = 16;       // triangle size
+            int tailLength = 26; // length of the arrow tail
+            int tipShift = 8;    // how much to move the triangle tip forward
+            int glowShift = -10;   // shift the glow slightly forward
 
-            // Draw a simple triangle pointing toward the player
+            // Cast to Graphics2D for advanced drawing
+            Graphics2D g2d = (Graphics2D) g2;
+
+            // Triangle pointing to player
             int cx = getWidth() / 2;
             int cy = getHeight() / 2;
             double angle = Math.atan2(player.y - cy, player.x - cx);
 
+            // Shift tip forward
+            int tipX = edge.x + (int)(tipShift * Math.cos(angle));
+            int tipY = edge.y + (int)(tipShift * Math.sin(angle));
+
+            // Pulsating glow (shifted slightly forward)
+            float pulse = 0.75f;
+            int glowSize = (int)(size * 2 + pulse * 10); // glow radius varies
+            int glowX = edge.x + (int)(glowShift * Math.cos(angle));
+            int glowY = edge.y + (int)(glowShift * Math.sin(angle));
+            Color glowColor = new Color(0, 255, 0, (int)(128 * pulse)); // translucent green
+            g2d.setColor(glowColor);
+            g2d.fillOval(glowX - glowSize / 2, glowY - glowSize / 2, glowSize, glowSize);
+
+            // Draw the triangle
             int[] xs = new int[] {
-                edge.x,
+                tipX, // tip shifted forward
                 edge.x - (int)(size * Math.cos(angle - Math.PI / 6)),
                 edge.x - (int)(size * Math.cos(angle + Math.PI / 6))
             };
             int[] ys = new int[] {
-                edge.y,
+                tipY, // tip shifted forward
                 edge.y - (int)(size * Math.sin(angle - Math.PI / 6)),
                 edge.y - (int)(size * Math.sin(angle + Math.PI / 6))
             };
+            g2d.setColor(Color.GREEN);
+            g2d.fillPolygon(xs, ys, 3);
 
-            g2.fillPolygon(xs, ys, 3);
+            // Draw arrow tail (unchanged)
+            int tailX = edge.x - (int)(tailLength * Math.cos(angle));
+            int tailY = edge.y - (int)(tailLength * Math.sin(angle));
+            g2d.setStroke(new java.awt.BasicStroke(3));
+            g2d.drawLine(tailX, tailY, edge.x, edge.y);
         }
+
     }
 
     public void renderHover(final Graphics g2) {

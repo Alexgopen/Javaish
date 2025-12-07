@@ -16,10 +16,17 @@ import com.sun.jna.Native;
 import com.sun.jna.Structure;
 import com.sun.jna.win32.StdCallLibrary;
 
+import exceptions.CoordNotFoundException;
+
 public class WindowCapture {
 
 	private static Rectangle prevFoundCoords = null;
 
+	public static void resetPrevFoundCoords()
+	{
+		WindowCapture.prevFoundCoords = null;
+	}
+	
 	public static BufferedImage getCoordCrop() throws AWTException, IOException {
 		BufferedImage coordCrop = null;
 
@@ -33,7 +40,15 @@ public class WindowCapture {
 			found = findCoordInLowerRightSplitQuadrant(ss);
 			long endTime = System.currentTimeMillis();
 			System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
-			System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
+			
+			if (found != null)
+			{
+				System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
+			}
+			else
+			{
+				throw new CoordNotFoundException();
+			}
 		} else {
 			found = WindowCapture.prevFoundCoords;
 			System.out.printf("Using previously found coord crop at (%d,%d)\n", found.x, found.y);
@@ -50,29 +65,17 @@ public class WindowCapture {
 					Point p = CoordExtractor.getPoint(coordCrop, false);
 					System.out.printf("Parsed coords: %s\n", p);
 				} catch (Exception e) {
-					WindowCapture.prevFoundCoords = null;
+					WindowCapture.resetPrevFoundCoords();
 					System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
 				}
 			} catch (Exception e) {
-				WindowCapture.prevFoundCoords = null;
+				WindowCapture.resetPrevFoundCoords();
 				e.printStackTrace();
 			}
-		} else if (false) {
-			WindowCapture.prevFoundCoords = null;
-			// Fallback to original arbitrary crop to preserve old behavior
-			System.err.println("Coordinate display not auto-detected — using arbitrary fallback crop.");
-			int arbitraryLeftCrop = 63;
-			int arbitraryUpCrop = 266;
-			Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop,
-					CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
-			try {
-				BufferedImage crop = cropImage(ss, rect);
-				coordCrop = crop;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			WindowCapture.prevFoundCoords = null;
+		}
+		else
+		{
+			throw new CoordNotFoundException();
 		}
 
 		return coordCrop;
@@ -100,7 +103,7 @@ public class WindowCapture {
 		final int widthX = width / 2 - width / 4;
 		final int heightY = height / 2;
 
-		System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
+		// System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
 
 		BufferedImage quadrant = cropImage(ss, new Rectangle(startX, startY, widthX, heightY));
 		ImageIO.write(quadrant, "png", new File("quadrant.png"));
