@@ -557,8 +557,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private Point convertWtoM(Point wCoord) {
         Point mCoord = new Point(0, 0);
 
-        /// invert
-
+        // Convert world coordinates to map pixels
         double xW = wCoord.x;
         double yW = wCoord.y;
 
@@ -571,7 +570,34 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         mCoord.y = (int) yW + offsetPoint.y;
         mCoord.x = (int) xW + offsetPoint.x;
 
-        if (points != null && !points.isEmpty()) {
+        if (firstRender) {
+            // Compute offset to center the first point
+            int centerX = getWidth() / 2;
+            int centerY = getHeight() / 2;
+
+            int desiredOffsetX = centerX - (int) xW;
+            int desiredOffsetY = centerY - (int) yW;
+
+            // Clamp vertical offset to map limits
+            int topLimit = 0;
+            int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
+
+            if (desiredOffsetY > topLimit) desiredOffsetY = topLimit;
+            if (desiredOffsetY < bottomLimit) desiredOffsetY = bottomLimit;
+
+            offsetPoint.x = desiredOffsetX;
+            offsetPoint.y = desiredOffsetY;
+
+            firstRender = false;
+            
+            System.out.println("Auto-centered view with offset: "+offsetPoint.toString());
+
+            // Update mCoord after shifting offset
+            mCoord.x = (int) xW + offsetPoint.x;
+            mCoord.y = (int) yW + offsetPoint.y;
+        }
+        else if (!points.isEmpty()) {
+            // Normal adjustment relative to last point
             Point lastPoint = points.get(points.size() - 1);
 
             int normXNew = mCoord.x % imageDimms.x;
@@ -585,55 +611,11 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
             mCoord.x = lastPoint.x + diffx;
             mCoord.y = lastPoint.y + diffy;
-
-            // this.points changes values based on offset when dragged
-            System.out.printf("offsetPoint.x=%d, normXNew=%d, normXLast=%d, lastPoint.x=%d,mCoord.x=%d\r\n",
-                    offsetPoint.x, normXNew, normXLast, lastPoint.x, mCoord.x);
-        }
-        else {
-            int signum = offsetPoint.x / Math.abs(offsetPoint.x);
-            signum *= -1;
-            int fakeOffset = signum * (Math.abs(offsetPoint.x) + (imageDimms.x / 2));
-            int mapNeighbor = Math.abs(fakeOffset) / imageDimms.x;
-
-            int offsetFactor = signum * mapNeighbor;
-            int offset = offsetFactor * imageDimms.x - imageDimms.x;
-
-            int oldCoordX = mCoord.x;
-            int newCoordX = mCoord.x + offset;
-            int m1 = mCoord.x + offset - imageDimms.x;
-            int p2 = mCoord.x + offset + 2 * imageDimms.x;
-
-            mCoord.x = newCoordX;
-
-            if (points != null && !points.isEmpty()) {
-                Point lastPoint = points.get(points.size() - 1);
-
-                int oldDiff = Math.abs(oldCoordX - lastPoint.x);
-                int newDiff = Math.abs(newCoordX - lastPoint.x);
-                int m1Diff = Math.abs(m1 - lastPoint.x);
-                int p2Diff = Math.abs(p2 - lastPoint.x);
-
-                if (oldDiff < newDiff && oldDiff < m1Diff && oldDiff < p2Diff) {
-                    mCoord.x = oldCoordX;
-                }
-
-                if (newDiff < oldDiff && newDiff < m1Diff && newDiff < p2Diff) {
-                    mCoord.x = newCoordX;
-                }
-
-                if (m1Diff < oldDiff && m1Diff < newDiff && m1Diff < p2Diff) {
-                    mCoord.x = m1;
-                }
-
-                if (p2Diff < oldDiff && p2Diff < newDiff && p2Diff < m1Diff) {
-                    mCoord.x = p2;
-                }
-            }
         }
 
         return mCoord;
     }
+
 
     @Override
     public void keyReleased(KeyEvent e) {
