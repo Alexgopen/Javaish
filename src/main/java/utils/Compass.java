@@ -32,11 +32,28 @@ public class Compass {
      * MAIN METHOD FOR EXTRACTION
      */
     public static void main(String[] args) throws Exception {
-        doTest();
+        doTestSearch();
     }
     
+    private static void doTestSearch() {
+    	test = true;
+        try {
+            File file = new File("/home/alex/Pictures/image.png");
+            BufferedImage img = ImageIO.read(file);
+
+            Point p = findInImage(img);
+
+            if (p != null) {
+                System.out.println("Found compass at "+p.toString());
+            } else {
+                System.out.println("No compass found in image.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     
-    private static void doTest()
+    private static void doTestExact()
     {
     	test = true;
         try {
@@ -54,6 +71,29 @@ public class Compass {
             e.printStackTrace();
         }
     }
+    
+    /**
+     * Search the given image for a match to the reference compass.
+     * Returns the top-left coordinates if found, or null if not found.
+     */
+    public static Point findInImage(BufferedImage img) {
+        int firstPixel = COLOR_VALUES[0] & 0xFFFFFF;
+
+        for (int y = 0; y <= img.getHeight() - HEIGHT; y++) {
+            for (int x = 0; x <= img.getWidth() - WIDTH; x++) {
+                int rgb = img.getRGB(x, y) & 0xFFFFFF;
+                if (!colorsClose(rgb, firstPixel, 20)) continue;
+
+                // Candidate match: check full 6x20 area
+                BufferedImage sub = img.getSubimage(x, y, WIDTH, HEIGHT);
+                if (scan(sub)) {
+                    return new Point(x, y);
+                }
+            }
+        }
+        return null; // not found
+    }
+
     
     /** Returns true if all mask-covered pixels match the reference colors. */
     public boolean isMatch() {
