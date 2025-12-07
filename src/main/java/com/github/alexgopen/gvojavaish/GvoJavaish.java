@@ -25,6 +25,7 @@ import javax.swing.SwingUtilities;
 import exceptions.CoordNotFoundException;
 import utils.CoordProvider;
 import utils.Point;
+import utils.TrackPoint;
 
 // Ideas:
 // Points is mouse coords, we need it in world coords
@@ -62,6 +63,9 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private boolean rclick = false;
 
     private List<Point> points = new ArrayList<>();
+    
+    private List<TrackPoint> trackPoints = new ArrayList<>();
+
 
     boolean dragging;
 
@@ -116,23 +120,37 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                         
                         GvoJavaish.failureDelay = 0;
                         Point coord = GvoJavaish.coordProvider.getCoord();
-                        Point converted = convertWtoM(coord);
+                        Point worldCoord = coord; 
+                        Point mapCoord = convertWtoM(coord);
                         int dist = 999;
 
                         if (GvoJavaish.gvojavaish.points.size() > 0) {
                             Point lastCoord = GvoJavaish.gvojavaish.points.get(GvoJavaish.gvojavaish.points.size() - 1);
 
                             dist = (int) Math.sqrt(
-                                    Math.pow(converted.x - lastCoord.x, 2) + Math.pow(converted.y - lastCoord.y, 2));
+                                    Math.pow(mapCoord.x - lastCoord.x, 2) + Math.pow(mapCoord.y - lastCoord.y, 2));
                         }
 
                         long currentTime = System.currentTimeMillis();
                         long timeDelta = currentTime - GvoJavaish.lastTime;
+                        
+                        long deltaTimeTp = 0;
+                        int distTp = 0;
+                        if (!trackPoints.isEmpty()) {
+                            TrackPoint last = trackPoints.get(trackPoints.size() - 1);
+                            deltaTimeTp = currentTime - last.timestamp;
+                            distTp = (int) Math.sqrt(
+                                Math.pow(worldCoord.x - last.world.x, 2) + Math.pow(worldCoord.y - last.world.y, 2)
+                            );
+                        }
+                        
+                        
                         System.err.println("Dist=" + dist + ", delta=" + timeDelta);
                         if (timeDelta > 1000 && dist >= 2) {
-
+                        	TrackPoint tp = new TrackPoint(worldCoord, mapCoord, currentTime, distTp, deltaTimeTp);
+                            trackPoints.add(tp);
                             GvoJavaish.lastTime = currentTime;
-                            GvoJavaish.gvojavaish.points.add(converted);
+                            GvoJavaish.gvojavaish.points.add(mapCoord);
                             GvoJavaish.gvojavaish.repaint();
                         }
 
@@ -149,6 +167,66 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             }
         });
         coordThread.start();
+    }
+    
+    public double averageSpeedLastN(int n) {
+        if (trackPoints.size() < 2) return 0;
+        int start = Math.max(0, trackPoints.size() - n);
+        double totalDist = 0;
+        long totalTime = 0;
+        for (int i = start + 1; i < trackPoints.size(); i++) {
+            totalDist += trackPoints.get(i).distanceFromPrev;
+            totalTime += trackPoints.get(i).deltaTime;
+        }
+        if (totalTime == 0) return 0;
+        double unitsPerSec =  totalDist / totalTime * 1000.0; // units per second
+        
+        double ktFactor = 21600.0 / 16384.0;
+        
+        double ktPerSec = unitsPerSec * ktFactor;
+        double ktPerMin = ktPerSec * 60;
+        double ktPerHr = ktPerMin * 60;
+        
+        double minsPerDayUwo = 1.0;
+        double minsPerDayIrl = 24.0*60.0;
+        double timeFactor = minsPerDayUwo / minsPerDayIrl;
+        
+        double scaledKt = ktPerHr * timeFactor;
+        
+        return scaledKt;
+    }
+
+    public double averageHeadingLastN(int n) {
+        if (trackPoints.size() < 2) return 0.0;
+
+        int start = Math.max(0, trackPoints.size() - n);
+
+        // Sum of unit vectors
+        double sumX = 0.0;
+        double sumY = 0.0;
+
+        for (int i = start + 1; i < trackPoints.size(); i++) {
+            Point prev = trackPoints.get(i - 1).world;
+            Point curr = trackPoints.get(i).world;
+
+            double dx = curr.x - prev.x;
+            double dy = -(curr.y - prev.y); // invert y if north is negative
+
+            // Skip zero-length segments
+            if (dx == 0 && dy == 0) continue;
+
+            double length = Math.sqrt(dx*dx + dy*dy);
+            sumX += dx / length;
+            sumY += dy / length;
+        }
+
+        if (sumX == 0 && sumY == 0) return 0.0; // no movement
+
+        double angleRad = Math.atan2(sumX, sumY); // dx as x, dy as y
+        double angleDeg = Math.toDegrees(angleRad);
+        if (angleDeg < 0) angleDeg += 360;
+
+        return angleDeg;
     }
 
     private void centerOnInitialCoord() {
@@ -207,7 +285,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             x += imageDimms.x;
         }
 
-        // renderText(g);
+        renderText(g);
         renderHover(g);
         // renderPoints(g);
         renderPointsList(g);
@@ -326,10 +404,33 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
 
             int lowestFactor = (int) (0.5 * Math.max(0, Math.min(maxFactorX, maxFactorY) - 1));
 
-            g2.setColor(new Color(0, 255, 255, 255));
-            int endX = curPointX + xDiff * lowestFactor;
-            int endY = curPointY + yDiff * lowestFactor;
-            g2.drawLine(curPointX, curPointY, endX, endY);
+            // WITH THIS:
+            double smoothedHeadingDeg = averageHeadingLastN(5) - 90;
+            double smoothedHeadingRad = Math.toRadians(smoothedHeadingDeg);
+
+            double dx = Math.cos(smoothedHeadingRad);
+            double dy = Math.sin(smoothedHeadingRad);
+
+            if (dx != 0 || dy != 0) {
+                int width = getWidth();
+                int height = getHeight();
+
+                double tMax = Double.MAX_VALUE;
+
+                // Intersect with vertical edges
+                if (dx > 0) tMax = (width - 1 - curPointX) / dx;
+                else if (dx < 0) tMax = -curPointX / dx;
+
+                // Intersect with horizontal edges
+                if (dy > 0) tMax = Math.min(tMax, (height - 1 - curPointY) / dy);
+                else if (dy < 0) tMax = Math.min(tMax, -curPointY / dy);
+
+                int endXHeading = curPointX + (int) (dx * tMax);
+                int endYHeading = curPointY + (int) (dy * tMax);
+
+                g2.setColor(new Color(0, 255, 255, 255));
+                g2.drawLine(curPointX, curPointY, endXHeading, endYHeading);
+            }
 
             int transX = curPointX;
             int transY = curPointY;
@@ -482,21 +583,26 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         int row = 0;
         int inc = 30;
 
-        // Zone text
-        String zoneText = String.format("Zone: %s", "unknown");
-        g2.drawString(zoneText, 15, textInitY + inc * row++);
-
-        recalcWorldCoords();
-        String worldText = "Coords: " + worldPoint.x + ", " + worldPoint.y;
+        TrackPoint lastPos = trackPoints.isEmpty() ? null : trackPoints.get(trackPoints.size() - 1);
+        Point p = lastPos == null ? null : lastPos.world;
+        int x = 0;
+        int y = 0;
+        if (p != null)
+        {
+        	x = p.x;
+        	y = p.y;
+        }
+        String worldText = "Coords: " + x + ", " + y;
         g2.drawString(worldText, 15, textInitY + inc * row++);
 
-        // Speed text
-        String speedText = String.format("Speed: %3.2f kt", 0.0f);
-        g2.drawString(speedText, 15, textInitY + inc * row++);
-
-        // Rot text
-        String rotText = String.format("Rotation: %d deg", 0);
+        double heading = averageHeadingLastN(5);
+        String rotText = String.format("Rotation: %.0f deg", heading);
         g2.drawString(rotText, 15, textInitY + inc * row++);
+        
+        // Speed text
+        double speed = averageSpeedLastN(5);
+        String speedNewText = String.format("Speed: %3.2f kt", speed);
+        g2.drawString(speedNewText, 15, textInitY + inc * row++);
     }
 
     @Override
