@@ -302,6 +302,36 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             g2.fillOval(transX - 3, transY - 3, 6, 6);
         }
 
+        Point player = null;
+        
+        if (points.size() > 0)
+        {
+        	player = points.get(points.size() - 1);
+        }
+
+        if (player != null && isOffscreen(player)) {
+            Point edge = getEdgePoint(player);
+            g2.setColor(Color.GREEN);
+            int size = 8;
+
+            // Draw a simple triangle pointing toward the player
+            int cx = getWidth() / 2;
+            int cy = getHeight() / 2;
+            double angle = Math.atan2(player.y - cy, player.x - cx);
+
+            int[] xs = new int[] {
+                edge.x,
+                edge.x - (int)(size * Math.cos(angle - Math.PI / 6)),
+                edge.x - (int)(size * Math.cos(angle + Math.PI / 6))
+            };
+            int[] ys = new int[] {
+                edge.y,
+                edge.y - (int)(size * Math.sin(angle - Math.PI / 6)),
+                edge.y - (int)(size * Math.sin(angle + Math.PI / 6))
+            };
+
+            g2.fillPolygon(xs, ys, 3);
+        }
     }
 
     public void renderHover(final Graphics g2) {
@@ -616,6 +646,36 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         return mCoord;
     }
 
+    private boolean isOffscreen(Point p) {
+        return p.x < 0 || p.x > getWidth() || p.y < 0 || p.y > getHeight();
+    }
+    
+    private Point getEdgePoint(Point p) {
+        int cx = getWidth() / 2;
+        int cy = getHeight() / 2;
+
+        double dx = p.x - cx;
+        double dy = p.y - cy;
+
+        double scale = 1.0;
+
+        // horizontal scaling
+        if (dx != 0) {
+            double sx = (dx > 0) ? (getWidth() - 10 - cx) / dx : (10 - cx) / dx;
+            scale = Math.min(scale, sx);
+        }
+
+        // vertical scaling
+        if (dy != 0) {
+            double sy = (dy > 0) ? (getHeight() - 10 - cy) / dy : (10 - cy) / dy;
+            scale = Math.min(scale, sy);
+        }
+
+        int edgeX = cx + (int) (dx * scale);
+        int edgeY = cy + (int) (dy * scale);
+
+        return new Point(edgeX, edgeY);
+    }
 
     @Override
     public void keyReleased(KeyEvent e) {

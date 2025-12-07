@@ -34,8 +34,6 @@ public class CoordProvider {
     	BufferedImage coordCrop = WindowCapture.getCoordCrop();
     	
         Point p = CoordExtractor.getPoint(coordCrop, false);
-
-        p = new Point(16000,1000);
         
         return p;
     }
