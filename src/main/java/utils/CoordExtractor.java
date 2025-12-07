@@ -7,6 +7,8 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import com.github.alexgopen.gvojavaish.GvoJavaish;
+
 public class CoordExtractor {
 	
 	public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
@@ -17,7 +19,7 @@ public class CoordExtractor {
 		
 	}
 	
-    public static Point getPoint(BufferedImage coordCrop) throws IOException {
+    public static Point getPoint(BufferedImage coordCrop, boolean silent) throws IOException {
         Point p = null;
 
         int digitWidth = Digit.WIDTH;
@@ -26,7 +28,7 @@ public class CoordExtractor {
         String allString = "";
         for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
             BufferedImage digitPixels = cropImage(coordCrop, new Rectangle(i * digitWidth, 0, digitWidth, height));
-            ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
+            //ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
             
             Digit d = new Digit(digitPixels);
             
@@ -40,16 +42,27 @@ public class CoordExtractor {
             }
             
         }
-        System.out.println(allString);
+        
+        if (!allString.isEmpty())
+        {
+        	System.out.println(allString);
 
-        int xVal = Integer.parseInt(allString.split(",")[0]);
-        int yVal = Integer.parseInt(allString.split(",")[1]);
+            int xVal = Integer.parseInt(allString.split(",")[0]);
+            int yVal = Integer.parseInt(allString.split(",")[1]);
 
-        String digitParsed = xVal + ", " + yVal;
-        System.out.println("Digitparsed: " + digitParsed);
+            String digitParsed = xVal + ", " + yVal;
+            System.out.println("Digitparsed: " + digitParsed);
 
-        Point actualCoords = new Point(xVal, yVal);
-        p = actualCoords;
+            Point actualCoords = new Point(xVal, yVal);
+            p = actualCoords;
+        }
+        else
+        {
+        	if (!silent)
+        	{
+        		System.out.println("No coordinates found.");
+        	}
+        }
 
         return p;
     }

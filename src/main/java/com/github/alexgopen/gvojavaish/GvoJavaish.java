@@ -63,8 +63,20 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private static GvoJavaish gvojavaish;
 
     private static long lastTime = -1;
+    
+    private static final long tickRate = 250;
+    
+    private static long failureDelay = 0;
+    
+    private static long initializingDelay = 5000;
 
+    public static void failedToFindCoord()
+    {
+    	failureDelay = 250;
+    }
+    
     public GvoJavaish() {
+    	
         try {
             String map = "map.png";
             map = "/uwogrid.png";
@@ -92,7 +104,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             public void run() {
                 while (true) {
                     try {
-                        Thread.sleep(250);
+                        Thread.sleep(tickRate + failureDelay);
+                        failureDelay = 0;
                         Point coord = GvoJavaish.coordProvider.getCoord();
                         Point converted = convertWtoM(coord);
                         int dist = 999;

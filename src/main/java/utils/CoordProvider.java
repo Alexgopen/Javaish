@@ -33,7 +33,7 @@ public class CoordProvider {
 
     	BufferedImage coordCrop = WindowCapture.getCoordCrop();
     	
-        Point p = CoordExtractor.getPoint(coordCrop);
+        Point p = CoordExtractor.getPoint(coordCrop, false);
 
         return p;
     }

@@ -56,7 +56,7 @@ public class WindowCapture {
                 ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
                 // Also attempt parsing to show result
                 try {
-                    Point p = CoordExtractor.getPoint(coordCrop);
+                    Point p = CoordExtractor.getPoint(coordCrop, false);
                     System.out.printf("Parsed coords: %s\n", p);
                 } catch (Exception e) {
                 	WindowCapture.prevFoundCoords = null;
@@ -96,8 +96,9 @@ public class WindowCapture {
      *
      * @param ss full screenshot of the game window
      * @return Rectangle of the first found crop, or null if not found
+     * @throws IOException 
      */
-    private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) {
+    private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) throws IOException {
         final int width = ss.getWidth();
         final int height = ss.getHeight();
 
@@ -108,7 +109,9 @@ public class WindowCapture {
         final int maxY = height - CoordExtractor.COORD_SECTION_HEIGHT;
 
         System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
-
+        ImageIO.write(ss, "png", new File("quadrant.png"));
+        
+        
         for (int y = startY; y <= maxY; y++) {
             for (int x = startX; x <= maxX; x++) {
                 try {
@@ -118,7 +121,7 @@ public class WindowCapture {
                     // Quick sanity: we might skip candidates that are uniformly blank or all black/white,
                     // but here we'll directly attempt to parse with your existing extractor.
                     try {
-                        Point p = CoordExtractor.getPoint(candidate);
+                        Point p = CoordExtractor.getPoint(candidate, true);
                         if (p != null) {
                             // success: return the location of the candidate crop
                             System.out.printf("Found parseable coordinate crop at (%d,%d) -> %s\n", x, y, p);
@@ -139,6 +142,8 @@ public class WindowCapture {
                 }
             }
         }
+        
+        System.out.println("Finished quandrant search, found nothing.");
 
         // nothing found
         return null;
@@ -150,15 +155,10 @@ public class WindowCapture {
     	    throw new RuntimeException("Window not found!");
     	}
 
-        // TODO: this is undesireable
-        int errX1 = 5;
-        int errX2 = 5;
-        int errY1 = 1;
-        int errY2 = 5;
-        int x = w.x + errX1;
-        int y = w.y + errY1;
-        int width  = w.width  - errX1 - errX2;
-        int height = w.height - errY1 - errY2;
+        int x = w.x;
+        int y = w.y;
+        int width  = w.width;
+        int height = w.height;
         Rectangle dimms = new Rectangle(x, y, width, height);
 
         BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
