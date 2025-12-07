@@ -17,236 +17,289 @@ import com.sun.jna.Structure;
 import com.sun.jna.win32.StdCallLibrary;
 
 public class WindowCapture {
-	
+
 	private static Rectangle prevFoundCoords = null;
+
+	public static void main(String[] args) throws AWTException, IOException {
+		BufferedImage crop = getCoordCrop();
+		ImageIO.write(crop, "png", new File("crop.png"));
+		System.out.println("Wrote crop");
+	}
+
+	public static BufferedImage getCoordCrop() throws AWTException, IOException {
+		BufferedImage coordCrop = null;
+
+		BufferedImage ss = getUwoWindowScreenShot();
+		ImageIO.write(ss, "png", new File("uwoss.png"));
+
+		Rectangle found = null;
+		if (prevFoundCoords == null) {
+			// Try to locate the coordinate display by scanning the lower-right quadrant
+			long startTime = System.currentTimeMillis();
+			found = findCoordInLowerRightQuadrant(ss);
+			long endTime = System.currentTimeMillis();
+			System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
+		} else {
+			found = WindowCapture.prevFoundCoords;
+		}
+
+		if (found != null) {
+			try {
+				BufferedImage crop = cropImage(ss, found);
+				coordCrop = crop;
+				System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
+				// optionally write debug
+				ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
+				// Also attempt parsing to show result
+				try {
+					Point p = CoordExtractor.getPoint(coordCrop, false);
+					System.out.printf("Parsed coords: %s\n", p);
+				} catch (Exception e) {
+					WindowCapture.prevFoundCoords = null;
+					System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
+				}
+			} catch (Exception e) {
+				WindowCapture.prevFoundCoords = null;
+				e.printStackTrace();
+			}
+		} else if (false) {
+			WindowCapture.prevFoundCoords = null;
+			// Fallback to original arbitrary crop to preserve old behavior
+			System.err.println("Coordinate display not auto-detected — using arbitrary fallback crop.");
+			int arbitraryLeftCrop = 63;
+			int arbitraryUpCrop = 266;
+			Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop,
+					CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
+			try {
+				BufferedImage crop = cropImage(ss, rect);
+				coordCrop = crop;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			WindowCapture.prevFoundCoords = null;
+		}
+
+		return coordCrop;
+	}
+
+	/**
+	 * Search the lower-right quadrant for a valid coordinate display. Scans
+	 * top->bottom, left->right within the quadrant and attempts to parse a 60x10
+	 * crop at each location using CoordExtractor.getPoint().
+	 *
+	 * @param ss full screenshot of the game window
+	 * @return Rectangle of the first found crop, or null if not found
+	 * @throws IOException
+	 */
+	private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) throws IOException {
+		final int width = ss.getWidth();
+		final int height = ss.getHeight();
+
+		// Define lower-right quadrant bounds. We use half width/height to approximate
+		// quadrant.
+		final int startX = width / 2;
+		final int startY = height / 2;
+		final int maxX = width;
+		final int maxY = height;
+
+		System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
+
+		BufferedImage quadrant = cropImage(ss, new Rectangle(startX, startY, startX, startY));
+		ImageIO.write(quadrant, "png", new File("quadrant.png"));
+
+		for (int y = startY; y <= maxY; y++) {
+			for (int x = startX; x <= maxX; x++) {
+				try {
+					Rectangle candidateRect = new Rectangle(x, y, CoordExtractor.COORD_SECTION_WIDTH,
+							CoordExtractor.COORD_SECTION_HEIGHT);
+					BufferedImage candidate = cropImage(ss, candidateRect);
+
+					// Quick sanity: we might skip candidates that are uniformly blank or all
+					// black/white,
+					// but here we'll directly attempt to parse with your existing extractor.
+					try {
+						Point p = CoordExtractor.getPoint(candidate, true);
+						if (p != null) {
+							
+							// slide right to capture remaining digits
+						    Rectangle fullRect = findFullCoord(ss, candidateRect);
+						    if (fullRect != null) {
+						    	// success: return the location of the candidate crop
+						    	BufferedImage candidate2 = cropImage(ss,fullRect);
+						    	Point p2 = CoordExtractor.getPoint(candidate2, true);
+								System.out.printf("Found full coordinate crop at (%d,%d) -> %s\n", fullRect.x, fullRect.y, p2);
+						        return fullRect;
+						    } else {
+								System.out.printf("Found risky coordinate crop at (%d,%d) -> %s\n", x, y, p);
+						        return candidateRect;
+						    }
+						}
+					} catch (NumberFormatException nfe) {
+						// parsed digits but not a valid coordinate string; skip
+					} catch (IOException ioe) {
+						// Digit writing IO or similar - ignore and continue scanning
+					} catch (Exception ex) {
+						// Any other parse-time exception: ignore and continue scanning
+					}
+				} catch (RasterFormatException rfe) {
+					// skip invalid subimage regions (shouldn't happen because of bounds)
+				} catch (Exception e) {
+					// unexpected; print debug and continue
+					// System.err.println("Unexpected error while scanning candidate: " +
+					// e.getMessage());
+				}
+			}
+		}
+
+		System.out.println("Finished quandrant search, found nothing.");
+
+		// nothing found
+		return null;
+	}
 	
-    public static void main(String[] args) throws AWTException, IOException {
-        BufferedImage crop = getCoordCrop();
-        ImageIO.write(crop, "png", new File("crop.png"));
-        System.out.println("Wrote crop");
-    }
+	private static Rectangle findFullCoord(BufferedImage ss, Rectangle startRect) throws IOException {
+	    int x = startRect.x;
+	    int y = startRect.y;
+	    int w = startRect.width;
+	    int h = startRect.height;
 
-    public static BufferedImage getCoordCrop() throws AWTException, IOException {
-        BufferedImage coordCrop = null;
+	    Point lastValidPoint = null;
+	    Rectangle lastValidRect = null;
 
-        BufferedImage ss = getUwoWindowScreenShot();
-        ImageIO.write(ss, "png", new File("uwoss.png"));
-        
-        Rectangle found = null;
-        if (prevFoundCoords == null)
-        {
-        	// Try to locate the coordinate display by scanning the lower-right quadrant
-            long startTime = System.currentTimeMillis();
-            found = findCoordInLowerRightQuadrant(ss);
-            long endTime = System.currentTimeMillis();
-            System.out.println("Quadrant coord search took "+(endTime-startTime)+" ms");
-        }
-        else
-        {
-        	found = WindowCapture.prevFoundCoords;
-        }
-        
-        
-        if (found != null) {
-            try {
-                BufferedImage crop = cropImage(ss, found);
-                coordCrop = crop;
-                System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
-                // optionally write debug
-                ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
-                // Also attempt parsing to show result
-                try {
-                    Point p = CoordExtractor.getPoint(coordCrop, false);
-                    System.out.printf("Parsed coords: %s\n", p);
-                } catch (Exception e) {
-                	WindowCapture.prevFoundCoords = null;
-                    System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
-                }
-            } catch (Exception e) {
-            	WindowCapture.prevFoundCoords = null;
-                e.printStackTrace();
-            }
-        } 
-        else if (false) {
-        	WindowCapture.prevFoundCoords = null;
-            // Fallback to original arbitrary crop to preserve old behavior
-            System.err.println("Coordinate display not auto-detected — using arbitrary fallback crop.");
-            int arbitraryLeftCrop = 63;
-            int arbitraryUpCrop = 266;
-            Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop, CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
-            try {
-                BufferedImage crop = cropImage(ss, rect);
-                coordCrop = crop;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        else
-        {
-        	WindowCapture.prevFoundCoords = null;
-        }
+	    while (true) {
+	        if (x + w > ss.getWidth()) break; // stop if crop goes out of bounds
 
-        return coordCrop;
-    }
-    
-    /**
-     * Search the lower-right quadrant for a valid coordinate display.
-     * Scans top->bottom, left->right within the quadrant and attempts to parse
-     * a 60x10 crop at each location using CoordExtractor.getPoint().
-     *
-     * @param ss full screenshot of the game window
-     * @return Rectangle of the first found crop, or null if not found
-     * @throws IOException 
-     */
-    private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) throws IOException {
-        final int width = ss.getWidth();
-        final int height = ss.getHeight();
+	        Rectangle candidateRect = new Rectangle(x, y, w, h);
+	        BufferedImage candidate = cropImage(ss, candidateRect);
 
-        // Define lower-right quadrant bounds. We use half width/height to approximate quadrant.
-        final int startX = width / 2;
-        final int startY = height / 2;
-        final int maxX = width - CoordExtractor.COORD_SECTION_WIDTH;
-        final int maxY = height - CoordExtractor.COORD_SECTION_HEIGHT;
+	        Point p = null;
+	        try {
+	            p = CoordExtractor.getPoint(candidate, true);
+	        } catch (Exception ignored) {}
 
-        System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
-        ImageIO.write(ss, "png", new File("quadrant.png"));
-        
-        
-        for (int y = startY; y <= maxY; y++) {
-            for (int x = startX; x <= maxX; x++) {
-                try {
-                    Rectangle candidateRect = new Rectangle(x, y, CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
-                    BufferedImage candidate = cropImage(ss, candidateRect);
+	        if (p != null) {
+	            if (lastValidPoint != null && p.toString().length() < lastValidPoint.toString().length()) {
+	                // Went too far: parsed string is shorter => stop and return last valid
+	                break;
+	            }
+	            lastValidPoint = p;
+	            lastValidRect = candidateRect;
+	            x += Digit.WIDTH; // slide window one digit to the right
+	        } else {
+	            // Parsing failed: stop sliding
+	            break;
+	        }
+	    }
 
-                    // Quick sanity: we might skip candidates that are uniformly blank or all black/white,
-                    // but here we'll directly attempt to parse with your existing extractor.
-                    try {
-                        Point p = CoordExtractor.getPoint(candidate, true);
-                        if (p != null) {
-                            // success: return the location of the candidate crop
-                            System.out.printf("Found parseable coordinate crop at (%d,%d) -> %s\n", x, y, p);
-                            return candidateRect;
-                        }
-                    } catch (NumberFormatException nfe) {
-                        // parsed digits but not a valid coordinate string; skip
-                    } catch (IOException ioe) {
-                        // Digit writing IO or similar - ignore and continue scanning
-                    } catch (Exception ex) {
-                        // Any other parse-time exception: ignore and continue scanning
-                    }
-                } catch (RasterFormatException rfe) {
-                    // skip invalid subimage regions (shouldn't happen because of bounds)
-                } catch (Exception e) {
-                    // unexpected; print debug and continue
-                    // System.err.println("Unexpected error while scanning candidate: " + e.getMessage());
-                }
-            }
-        }
-        
-        System.out.println("Finished quandrant search, found nothing.");
+	    if (lastValidPoint != null) {
+	        System.out.println("Full coordinate parsed: " + lastValidPoint);
+	        return lastValidRect; // last valid crop where full coordinate exists
+	    }
 
-        // nothing found
-        return null;
-    }
+	    return null;
+	}
 
-    public static BufferedImage getUwoWindowScreenShot() throws AWTException {
-    	X11WindowUtil.WindowInfo w = X11WindowUtil.findWindowByTitle("Uncharted Waters Online");
-    	if (w == null) {
-    	    throw new RuntimeException("Window not found!");
-    	}
 
-        int x = w.x;
-        int y = w.y;
-        int width  = w.width;
-        int height = w.height;
-        Rectangle dimms = new Rectangle(x, y, width, height);
 
-        BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
-        return createScreenCapture;
-    }
+	public static BufferedImage getUwoWindowScreenShot() throws AWTException {
+		X11WindowUtil.WindowInfo w = X11WindowUtil.findWindowByTitle("Uncharted Waters Online");
+		if (w == null) {
+			throw new RuntimeException("Window not found!");
+		}
 
-    private static BufferedImage cropImage(BufferedImage src, Rectangle rect) {
-        BufferedImage dest = src.getSubimage(rect.x, rect.y, rect.width, rect.height);
-        return dest;
-    }
+		int x = w.x;
+		int y = w.y;
+		int width = w.width;
+		int height = w.height;
+		Rectangle dimms = new Rectangle(x, y, width, height);
 
-    public static WindowInfo getWindowInfo(int hWnd) {
-        RECT r = new RECT();
-        User32.instance.GetWindowRect(hWnd, r);
-        byte[] buffer = new byte[1024];
-        User32.instance.GetWindowTextA(hWnd, buffer, buffer.length);
-        String title = Native.toString(buffer);
-        WindowInfo info = new WindowInfo(hWnd, r, title);
-        return info;
-    }
+		BufferedImage createScreenCapture = new Robot().createScreenCapture(dimms);
+		return createScreenCapture;
+	}
 
-    public static interface WndEnumProc extends StdCallLibrary.StdCallCallback {
-        boolean callback(int hWnd, int lParam);
-    }
+	private static BufferedImage cropImage(BufferedImage src, Rectangle rect) {
+		BufferedImage dest = src.getSubimage(rect.x, rect.y, rect.width, rect.height);
+		return dest;
+	}
 
-    public static interface User32 extends StdCallLibrary {
-        public static final String SHELL_TRAY_WND = "Shell_TrayWnd";
-        public static final int WM_COMMAND = 0x111;
-        public static final int MIN_ALL = 0x1a3;
-        public static final int MIN_ALL_UNDO = 0x1a0;
+	public static WindowInfo getWindowInfo(int hWnd) {
+		RECT r = new RECT();
+		User32.instance.GetWindowRect(hWnd, r);
+		byte[] buffer = new byte[1024];
+		User32.instance.GetWindowTextA(hWnd, buffer, buffer.length);
+		String title = Native.toString(buffer);
+		WindowInfo info = new WindowInfo(hWnd, r, title);
+		return info;
+	}
 
-        final User32 instance = Native.load("user32", User32.class);
+	public static interface WndEnumProc extends StdCallLibrary.StdCallCallback {
+		boolean callback(int hWnd, int lParam);
+	}
 
-        boolean EnumWindows(WndEnumProc wndenumproc, int lParam);
+	public static interface User32 extends StdCallLibrary {
+		public static final String SHELL_TRAY_WND = "Shell_TrayWnd";
+		public static final int WM_COMMAND = 0x111;
+		public static final int MIN_ALL = 0x1a3;
+		public static final int MIN_ALL_UNDO = 0x1a0;
 
-        boolean IsWindowVisible(int hWnd);
+		final User32 instance = Native.load("user32", User32.class);
 
-        int GetWindowRect(int hWnd, RECT r);
+		boolean EnumWindows(WndEnumProc wndenumproc, int lParam);
 
-        void GetWindowTextA(int hWnd, byte[] buffer, int buflen);
+		boolean IsWindowVisible(int hWnd);
 
-        int GetTopWindow(int hWnd);
+		int GetWindowRect(int hWnd, RECT r);
 
-        int GetWindow(int hWnd, int flag);
+		void GetWindowTextA(int hWnd, byte[] buffer, int buflen);
 
-        boolean ShowWindow(int hWnd);
+		int GetTopWindow(int hWnd);
 
-        boolean BringWindowToTop(int hWnd);
+		int GetWindow(int hWnd, int flag);
 
-        int GetActiveWindow();
+		boolean ShowWindow(int hWnd);
 
-        boolean SetForegroundWindow(int hWnd);
+		boolean BringWindowToTop(int hWnd);
 
-        int FindWindowA(String winClass, String title);
+		int GetActiveWindow();
 
-        long SendMessageA(int hWnd, int msg, int num1, int num2);
+		boolean SetForegroundWindow(int hWnd);
 
-        final int GW_HWNDNEXT = 2;
-    }
+		int FindWindowA(String winClass, String title);
 
-    public static class RECT extends Structure {
-        public int left, top, right, bottom;
+		long SendMessageA(int hWnd, int msg, int num1, int num2);
 
-        @Override
-        protected List<String> getFieldOrder() {
-            List<String> order = new ArrayList<>();
-            order.add("left");
-            order.add("top");
-            order.add("right");
-            order.add("bottom");
-            return order;
-        }
-    }
+		final int GW_HWNDNEXT = 2;
+	}
 
-    public static class WindowInfo {
-        int hwnd;
-        RECT rect;
-        String title;
+	public static class RECT extends Structure {
+		public int left, top, right, bottom;
 
-        public WindowInfo(int hwnd, RECT rect, String title) {
-            this.hwnd = hwnd;
-            this.rect = rect;
-            this.title = title;
-        }
+		@Override
+		protected List<String> getFieldOrder() {
+			List<String> order = new ArrayList<>();
+			order.add("left");
+			order.add("top");
+			order.add("right");
+			order.add("bottom");
+			return order;
+		}
+	}
 
-        @Override
-        public String toString() {
-            return String.format("(%d,%d)-(%d,%d) : \"%s\"", rect.left, rect.top, rect.right, rect.bottom, title);
-        }
-    }
+	public static class WindowInfo {
+		int hwnd;
+		RECT rect;
+		String title;
+
+		public WindowInfo(int hwnd, RECT rect, String title) {
+			this.hwnd = hwnd;
+			this.rect = rect;
+			this.title = title;
+		}
+
+		@Override
+		public String toString() {
+			return String.format("(%d,%d)-(%d,%d) : \"%s\"", rect.left, rect.top, rect.right, rect.bottom, title);
+		}
+	}
 }

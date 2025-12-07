@@ -50,11 +50,19 @@ public class X11WindowUtil {
 
             WindowInfo info = new WindowInfo();
             info.window = win;
-            info.x = attrs.x;
-            info.y = attrs.y;
             info.width = attrs.width;
             info.height = attrs.height;
             info.title = title;
+
+            // Translate coordinates to root (screen) coordinates
+            IntByReference absX = new IntByReference();
+            IntByReference absY = new IntByReference();
+            X11.WindowByReference childRef = new X11.WindowByReference(); 
+            x11.XTranslateCoordinates(display, win, x11.XDefaultRootWindow(display),
+                    0, 0, absX, absY, childRef);
+
+            info.x = absX.getValue();
+            info.y = absY.getValue();
 
             out.add(info);
         }
@@ -77,6 +85,7 @@ public class X11WindowUtil {
             x11.XFree(childrenPtr);
         }
     }
+
 
     public static WindowInfo findWindowByTitle(String needle) {
         for (WindowInfo w : getAllWindows()) {

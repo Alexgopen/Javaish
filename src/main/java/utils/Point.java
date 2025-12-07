@@ -16,4 +16,11 @@ public class Point {
         this.y = y;
         this.index = index;
     }
+    
+    @Override
+    public String toString()
+    {
+		return "Index="+index+": "+x+", "+y;
+    	
+    }
 }

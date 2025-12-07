@@ -38,7 +38,7 @@ public class CoordExtractor {
             }
             else
             {
-            	System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i, d.getLongValue());
+            	//System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i, d.getLongValue());
             }
             
         }
