@@ -29,14 +29,7 @@ import utils.TrackPoint;
 import utils.WindowCapture;
 
 // Ideas:
-// Points is mouse coords, we need it in world coords
-// Store time for each point
-// Get distance between points
-// Get speed between that segment
-// Get all distance/time for avg speed
 // Mark coords of each point
-// List current speed
-// Read coords for auto plotting
 // List total distance of current trip
 // List duration of current trip
 // Mark shipwreck hits (triangulation)
