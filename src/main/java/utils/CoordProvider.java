@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
+import exceptions.CoordNotFoundException;
+
 public class CoordProvider {
 
     private List<Point> testPoints;
@@ -33,7 +35,16 @@ public class CoordProvider {
 
     	BufferedImage coordCrop = WindowCapture.getCoordCrop();
     	
-        Point p = CoordExtractor.getPoint(coordCrop, false);
+        Point p = CoordExtractor.getPoint(coordCrop, true);
+        
+        if (p == null)
+        {
+        	throw new CoordNotFoundException();
+        }
+        else
+        {
+        	System.out.println("Latest coord: "+p.toString());
+        }
         
         return p;
     }

@@ -26,6 +26,7 @@ import exceptions.CoordNotFoundException;
 import utils.CoordProvider;
 import utils.Point;
 import utils.TrackPoint;
+import utils.WindowCapture;
 
 // Ideas:
 // Points is mouse coords, we need it in world coords
@@ -139,11 +140,37 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                         if (!trackPoints.isEmpty()) {
                             TrackPoint last = trackPoints.get(trackPoints.size() - 1);
                             deltaTimeTp = currentTime - last.timestamp;
-                            distTp = (int) Math.sqrt(
-                                Math.pow(worldCoord.x - last.world.x, 2) + Math.pow(worldCoord.y - last.world.y, 2)
-                            );
+                            
+                            int dx = wrappedDelta(worldCoord.x, last.world.x);
+                            int dy = wrappedDelta(worldCoord.y, last.world.y);
+
+                            distTp = (int)Math.sqrt(dx*dx + dy*dy);
                         }
                         
+                        // Estimate speed in units/sec
+                        double newSpeed = deltaTimeTp > 0 ? distTp / (deltaTimeTp / 1000.0) : 0;
+
+                        // Get average speed of last N points in units/sec
+                        double avgSpeed = 0;
+                        int N = 5;
+                        if (trackPoints.size() > 1) {
+                            int start = Math.max(0, trackPoints.size() - N);
+                            double totalDist = 0;
+                            long totalTime = 0;
+                            for (int i = start + 1; i < trackPoints.size(); i++) {
+                                totalDist += trackPoints.get(i).distanceFromPrev;
+                                totalTime += trackPoints.get(i).deltaTime;
+                            }
+                            if (totalTime > 0) {
+                                avgSpeed = totalDist / (totalTime / 1000.0);
+                            }
+                        }
+
+                        // Skip this point if speed is more than 5x the recent average
+                        if (avgSpeed > 0 && (newSpeed > 10 * avgSpeed || newSpeed >= 50)) {
+                            System.err.println("Skipped spike point: newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
+                            continue; // skip adding this point
+                        }
                         
                         System.err.println("Dist=" + dist + ", delta=" + timeDelta);
                         if (timeDelta > 1000 && dist >= 2) {
@@ -158,6 +185,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                     catch (CoordNotFoundException cnfe)
                     {
                     	System.err.println("Coord not found.");
+                    	WindowCapture.resetPrevFoundCoords();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -167,6 +195,13 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             }
         });
         coordThread.start();
+    }
+    
+    private int wrappedDelta(int a, int b) {
+        int dx = a - b;
+        if (dx > 8192)  dx -= 16384;
+        if (dx < -8192) dx += 16384;
+        return dx;
     }
     
     public double averageSpeedLastN(int n) {
@@ -181,20 +216,23 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         if (totalTime == 0) return 0;
         double unitsPerSec =  totalDist / totalTime * 1000.0; // units per second
         
-        double ktFactor = 21600.0 / 16384.0;
-        
-        double ktPerSec = unitsPerSec * ktFactor;
-        double ktPerMin = ktPerSec * 60;
-        double ktPerHr = ktPerMin * 60;
-        
-        double minsPerDayUwo = 1.0;
-        double minsPerDayIrl = 24.0*60.0;
-        double timeFactor = minsPerDayUwo / minsPerDayIrl;
-        
-        double scaledKt = ktPerHr * timeFactor;
-        
-        return scaledKt;
+        return gvonavishKt(unitsPerSec);
     }
+    
+    public static double nauticalMileKt(double unitsPerSec) {     
+        double worldToNm = 21600.0 / 16384.0; // 21600 real nautical miles is 16384 coordinate units ingame
+        double timeScale = 1.0 / 1440.0; // 1 real minute is 1 ingame day (24*60 minutes)
+        double secondsPerHr = 3600;
+            
+        return unitsPerSec * worldToNm * secondsPerHr * timeScale;
+    }
+
+    public static double gvonavishKt(double unitsPerSec)
+	{
+        // real earth circumference in km / ingame earth circumference coordinate units / timescale / kmh per kt
+		double knotsFactor = (2 * 3.141592654 * 6378.137) / 16384.0 / 0.4 / 1.852;
+		return unitsPerSec * knotsFactor;
+	} 
 
     public double averageHeadingLastN(int n) {
         if (trackPoints.size() < 2) return 0.0;
@@ -209,8 +247,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             Point prev = trackPoints.get(i - 1).world;
             Point curr = trackPoints.get(i).world;
 
-            double dx = curr.x - prev.x;
-            double dy = -(curr.y - prev.y); // invert y if north is negative
+            int dx = wrappedDelta(curr.x, prev.x);
+            int dy = wrappedDelta(prev.y, curr.y);
 
             // Skip zero-length segments
             if (dx == 0 && dy == 0) continue;
@@ -804,9 +842,17 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
             int yNew = mCoord.y;
             int yLast = lastPoint.y;
 
+            // --- FIX: compute wrapped X difference ---
             int diffx = normXNew - normXLast;
+            // wrap horizontally (half-map threshold)
+            int half = imageDimms.x / 2;
+            if (diffx >  half) diffx -= imageDimms.x;
+            if (diffx < -half) diffx += imageDimms.x;
+            // --- END FIX ---
+
             int diffy = yNew - yLast;
 
+            // Apply corrected continuous movement
             mCoord.x = lastPoint.x + diffx;
             mCoord.y = lastPoint.y + diffy;
         }

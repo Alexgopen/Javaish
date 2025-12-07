@@ -21,10 +21,23 @@ import exceptions.CoordNotFoundException;
 public class WindowCapture {
 
 	private static Rectangle prevFoundCoords = null;
+	private static long lostCoordsTimestamp = 0;
 
 	public static void resetPrevFoundCoords()
 	{
 		WindowCapture.prevFoundCoords = null;
+		
+		if (WindowCapture.lostCoordsTimestamp == 0)
+		{
+			WindowCapture.lostCoordsTimestamp = System.currentTimeMillis();
+		}
+	}
+	
+	private static boolean shouldSearchCoords()
+	{
+		boolean shouldSearch = WindowCapture.lostCoordsTimestamp == 0 || (System.currentTimeMillis() - WindowCapture.lostCoordsTimestamp) >= 5000;
+		
+		return shouldSearch;
 	}
 	
 	public static BufferedImage getCoordCrop() throws AWTException, IOException {
@@ -34,16 +47,17 @@ public class WindowCapture {
 		ImageIO.write(ss, "png", new File("uwoss.png"));
 
 		Rectangle found = null;
-		if (prevFoundCoords == null) {
+		if (prevFoundCoords == null && WindowCapture.shouldSearchCoords()) {
+			WindowCapture.lostCoordsTimestamp = 0;
 			// Try to locate the coordinate display by scanning the lower-right quadrant
 			long startTime = System.currentTimeMillis();
 			found = findCoordInLowerRightSplitQuadrant(ss);
 			long endTime = System.currentTimeMillis();
-			System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
+			// System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
 			
 			if (found != null)
 			{
-				System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
+				// System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
 			}
 			else
 			{
@@ -51,7 +65,7 @@ public class WindowCapture {
 			}
 		} else {
 			found = WindowCapture.prevFoundCoords;
-			System.out.printf("Using previously found coord crop at (%d,%d)\n", found.x, found.y);
+			// System.out.printf("Using previously found coord crop at (%d,%d)\n", found.x, found.y);
 		}
 
 		if (found != null) {
@@ -62,11 +76,11 @@ public class WindowCapture {
 				ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
 				// Also attempt parsing to show result
 				try {
-					Point p = CoordExtractor.getPoint(coordCrop, false);
-					System.out.printf("Parsed coords: %s\n", p);
+					Point p = CoordExtractor.getPoint(coordCrop, true);
+					//System.out.printf("Parsed coords: %s\n", p);
 				} catch (Exception e) {
 					WindowCapture.resetPrevFoundCoords();
-					System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
+					//System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
 				}
 			} catch (Exception e) {
 				WindowCapture.resetPrevFoundCoords();
@@ -153,7 +167,7 @@ public class WindowCapture {
 			}
 		}
 
-		System.out.println("Finished quandrant search, found nothing.");
+		// System.out.println("Finished quandrant search, found nothing.");
 
 		// nothing found
 		return null;
@@ -176,7 +190,7 @@ public class WindowCapture {
 
 	        Point p = null;
 	        try {
-	            p = CoordExtractor.getPoint(candidate, true);
+	            p = CoordExtractor.getPoint(candidate, false);
 	        } catch (Exception ignored) {}
 
 	        if (p != null) {
