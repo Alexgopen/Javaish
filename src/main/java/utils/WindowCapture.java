@@ -17,6 +17,7 @@ import com.sun.jna.Structure;
 import com.sun.jna.win32.StdCallLibrary;
 
 import exceptions.CoordNotFoundException;
+import exceptions.WindowNotFoundException;
 
 public class WindowCapture {
 
@@ -41,6 +42,9 @@ public class WindowCapture {
 	}
 	
 	public static BufferedImage getCoordCrop() throws AWTException, IOException {
+		boolean useCompassMode = true;
+		
+		
 		BufferedImage coordCrop = null;
 
 		BufferedImage ss = getUwoWindowScreenShot();
@@ -51,12 +55,22 @@ public class WindowCapture {
 			WindowCapture.lostCoordsTimestamp = 0;
 			// Try to locate the coordinate display by scanning the lower-right quadrant
 			long startTime = System.currentTimeMillis();
-			found = findCoordInLowerRightSplitQuadrant(ss);
+			
+			if (useCompassMode)
+			{
+				found = Compass.findCoordCropFromCompass(ss);
+			}
+			else
+			{
+				found = findCoordInLowerRightSplitQuadrant(ss);
+			}
 			long endTime = System.currentTimeMillis();
 			// System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
 			
 			if (found != null)
 			{
+				WindowCapture.prevFoundCoords = found;
+				
 				// System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
 			}
 			else
@@ -220,7 +234,7 @@ public class WindowCapture {
 	public static BufferedImage getUwoWindowScreenShot() throws AWTException {
 		X11WindowUtil.WindowInfo w = X11WindowUtil.findWindowByTitle("Uncharted Waters Online");
 		if (w == null) {
-			throw new RuntimeException("Window not found!");
+			throw new WindowNotFoundException();
 		}
 
 		int x = w.x;

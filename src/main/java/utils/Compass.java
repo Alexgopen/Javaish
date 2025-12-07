@@ -1,9 +1,13 @@
 package utils;
 
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
 import javax.imageio.ImageIO;
+
+import exceptions.CoordNotFoundException;
 
 public class Compass {
 
@@ -32,22 +36,113 @@ public class Compass {
      * MAIN METHOD FOR EXTRACTION
      */
     public static void main(String[] args) throws Exception {
-        doTestSearch();
+    	// Add timer
+    	// Work backwards from bottom right, right to left, up row by row?
+    	
+    	doTestReadCoordsFromCompassBroad();
+        
+    }
+    
+    public static Rectangle findCoordCropFromCompass(BufferedImage img)
+    {
+    	try
+    	{
+	    	Point p2 = findInImageBackwards(img);
+	    	
+	    	if (p2 != null)
+	    	{
+	    		int compassToCoordOffsetX = 62;
+	    		int compassToCoordOffsetY = 6;
+	    		BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
+	    		
+	    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
+	    		
+	    		System.out.println("Is coordinate?: "+pcoord.toString());
+	    		
+	    		if (pcoord != null)
+	    		{
+	    			return new Rectangle(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
+	    		}
+	    	}
+    	}
+    	catch (Exception e)
+    	{
+    		e.printStackTrace();
+    		throw new CoordNotFoundException();
+    	}
+    	
+    	throw new CoordNotFoundException();
+    }
+    
+    private static void doTestReadCoordsFromCompassBroad() throws IOException
+    {
+    	BufferedImage img = searchImage();
+    	Point p2 = findInImageBackwards(img);
+    	
+    	if (p2 != null)
+    	{
+    		int compassToCoordOffsetX = 62;
+    		int compassToCoordOffsetY = 6;
+    		BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
+    		
+    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
+    		
+    		System.out.println("Is coordinate?: "+pcoord.toString());
+    	}
+    }
+    
+    private static void doTestReadCoordsFromCompass() throws IOException
+    {
+    	BufferedImage img = searchImage();
+    	Point p2 = findInImageBackwards(img);
+    	
+    	if (p2 != null)
+    	{
+    		int compassToCoordOffsetX = 62;
+    		int compassToCoordOffsetY = 6;
+    		BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
+    		
+    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
+    		
+    		System.out.println("Is coordinate?: "+pcoord.toString());
+    	}
+    }
+    
+    private static BufferedImage searchImage() throws IOException
+    {
+    	File file = new File("/home/alex/Pictures/image.png");
+        BufferedImage img = ImageIO.read(file);
+        
+        return img;
     }
     
     private static void doTestSearch() {
-    	test = true;
         try {
-            File file = new File("/home/alex/Pictures/image.png");
-            BufferedImage img = ImageIO.read(file);
+            BufferedImage img = searchImage();
 
-            Point p = findInImage(img);
-
+            long start = System.currentTimeMillis();
+            Point p = findInImageForwards(img);
+            long end = System.currentTimeMillis();
+            long diff = (end - start);
+            System.out.println("Forwards took "+diff+" ms");
+            
             if (p != null) {
-                System.out.println("Found compass at "+p.toString());
+                System.out.println("Found compass forwards at "+p.toString());
             } else {
-                System.out.println("No compass found in image.");
+                System.out.println("No compass found forwards in image.");
             }
+            
+            long start2 = System.currentTimeMillis();
+            Point p2 = findInImageBackwards(img);
+            long end2 = System.currentTimeMillis();
+            long diff2 = (end2 - start2);
+            System.out.println("Backwards took "+diff2+" ms");
+
+            if (p2 != null) {
+                System.out.println("Found compass backwards at "+p2.toString());
+            } else {
+                System.out.println("No compass found backwards in image.");
+            }            
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -76,11 +171,34 @@ public class Compass {
      * Search the given image for a match to the reference compass.
      * Returns the top-left coordinates if found, or null if not found.
      */
-    public static Point findInImage(BufferedImage img) {
+    public static Point findInImageForwards(BufferedImage img) {
         int firstPixel = COLOR_VALUES[0] & 0xFFFFFF;
 
         for (int y = 0; y <= img.getHeight() - HEIGHT; y++) {
             for (int x = 0; x <= img.getWidth() - WIDTH; x++) {
+                int rgb = img.getRGB(x, y) & 0xFFFFFF;
+                if (!colorsClose(rgb, firstPixel, 20)) continue;
+
+                // Candidate match: check full 6x20 area
+                BufferedImage sub = img.getSubimage(x, y, WIDTH, HEIGHT);
+                if (scan(sub)) {
+                    return new Point(x, y);
+                }
+            }
+        }
+        return null; // not found
+    }
+    
+    /**
+     * Search the given image for a match to the reference compass starting from
+     * the bottom-right corner, scanning right-to-left, bottom-to-top.
+     * Returns the top-left coordinates if found, or null if not found.
+     */
+    public static Point findInImageBackwards(BufferedImage img) {
+        int firstPixel = COLOR_VALUES[0] & 0xFFFFFF;
+
+        for (int y = img.getHeight() - HEIGHT; y >= 0; y--) {
+            for (int x = img.getWidth() - WIDTH; x >= 0; x--) {
                 int rgb = img.getRGB(x, y) & 0xFFFFFF;
                 if (!colorsClose(rgb, firstPixel, 20)) continue;
 
