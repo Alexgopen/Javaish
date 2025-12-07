@@ -11,7 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 public class Compass {
 
     public static final int WIDTH = 6;
-    public static final int HEIGHT = 22;
+    public static final int HEIGHT = 20;
 
     /**
      * mask[y][x] == 1 means this pixel is part of the pattern we care about.
@@ -32,8 +32,6 @@ public class Compass {
         {1,1,0,0,0,0},
         {1,1,1,1,1,1},
         {1,1,1,1,1,1},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
         {1,1,0,0,0,0},
         {1,1,0,0,0,0},
         {1,1,0,0,0,0},
@@ -69,9 +67,7 @@ public class Compass {
 	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
 	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
 	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#A9883D", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#BDA36A", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#E4DBC5", "       ", "       ", "       ", "       "},
+	    {"#E4DBC5", "#A9883D", "       ", "       ", "       ", "       "}
 	};
 
     private boolean match;
