@@ -1,76 +1,22 @@
 package utils;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
 import javax.imageio.ImageIO;
-
-import org.apache.commons.lang3.StringUtils;
 
 public class Compass {
 
     public static final int WIDTH = 6;
     public static final int HEIGHT = 20;
 
-    /**
-     * mask[y][x] == 1 means this pixel is part of the pattern we care about.
-     */
-    private static final int[][] MASK = {
-        {1,0,0,0,0,0},
-        {1,0,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,1,0,0,0},
-        {1,1,1,0,0,0},
-        {1,1,1,0,0,0},
-        {1,1,1,0,0,0},
-        {1,1,1,1,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0},
-        {1,1,0,0,0,0}
-    };
-
-    /**
-     * Expected hex color for each pixel. Initialized to "#000000".
-     */
-    /**
-     * Expected hex color for each pixel.
-     * EMPTY STRING for mask == 0
-     * "#000000" (default placeholder) for mask == 1
-     */
-    private static final String[][] COLORS = {
-	    {"#E4DBC5", "       ", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "       ", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#BDA36A", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#E4DBC5", "       ", "       ", "       ", "       "},
-	    {"#F1ECE2", "#E4DBC5", "#926D17", "       ", "       ", "       "},
-	    {"#F9F6F2", "#E4DBC5", "#A9883D", "       ", "       ", "       "},
-	    {"#FCFAF8", "#F1ECE2", "#BDA36A", "       ", "       ", "       "},
-	    {"#FCFAF8", "#F9F6F2", "#E4DBC5", "       ", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "#926D17", "#926D17", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#F1ECE2", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#F9F6F2", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#FDFDFB", "#F9F6F2", "#F1ECE2", "#F1ECE2", "#F1ECE2", "#E4DBC5"},
-	    {"#F9F6F2", "#926D17", "#926D17", "#926D17", "#926D17", "#926D17"},
-	    {"#F1ECE2", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#926D17", "       ", "       ", "       ", "       "},
-	    {"#E4DBC5", "#A9883D", "       ", "       ", "       ", "       "}
-	};
+    static final long MASK_LO = 3517061108995993665L; 
+    static final long MASK_HI = 3431314065703692L; 
+    static final int[] COLOR_VALUES = { 0xFFE4DBC5, 0xFFE4DBC5, 0xFFE4DBC5, 0xFFBDA36A, 0xFFE4DBC5, 0xFFE4DBC5, 0xFFF1ECE2, 0xFFE4DBC5, 0xFF926D17, 0xFFF9F6F2, 0xFFE4DBC5, 0xFFA9883D, 0xFFFCFAF8, 0xFFF1ECE2, 0xFFBDA36A, 0xFFFCFAF8, 0xFFF9F6F2, 0xFFE4DBC5, 0xFFE4DBC5, 0xFF926D17, 0xFF926D17, 0xFF926D17, 0xFFE4DBC5, 0xFF926D17, 0xFFE4DBC5, 0xFF926D17, 0xFFF1ECE2, 0xFF926D17, 0xFFF9F6F2, 0xFF926D17, 0xFFFDFDFB, 0xFFF9F6F2, 0xFFF1ECE2, 0xFFF1ECE2, 0xFFF1ECE2, 0xFFE4DBC5, 0xFFF9F6F2, 0xFF926D17, 0xFF926D17, 0xFF926D17, 0xFF926D17, 0xFF926D17, 0xFFF1ECE2, 0xFF926D17, 0xFFE4DBC5, 0xFF926D17, 0xFFE4DBC5, 0xFF926D17, 0xFFE4DBC5, 0xFF926D17, 0xFFE4DBC5, 0xFFA9883D };
 
     private boolean match;
+    
+    private static boolean test;
 
     public Compass(BufferedImage img) {
         if (img.getWidth() != WIDTH || img.getHeight() != HEIGHT) {
@@ -86,47 +32,27 @@ public class Compass {
      * MAIN METHOD FOR EXTRACTION
      */
     public static void main(String[] args) throws Exception {
-        File file = new File("/home/alex/Pictures/compass.png");
-
-        BufferedImage img = ImageIO.read(file);
-        extractColors(img);
+        doTest();
     }
     
-    /**
-     * Prints a ready-to-paste COLORS array from an image.
-     */
-    public static void extractColors(BufferedImage img) {
-        if (img.getWidth() != WIDTH || img.getHeight() != HEIGHT) {
-            throw new IllegalArgumentException(
-                "Expected "+WIDTH+"x"+HEIGHT+" reference image, got " + img.getWidth() + "x" + img.getHeight()
-            );
-        }
+    
+    private static void doTest()
+    {
+    	test = true;
+        try {
+            File file = new File("/home/alex/Pictures/compasstest.png");
+            BufferedImage img = ImageIO.read(file);
 
-        System.out.println("private static final String[][] COLORS = {");
+            Compass compass = new Compass(img);
 
-        for (int y = 0; y < HEIGHT; y++) {
-            System.out.print("    {");
-
-            for (int x = 0; x < WIDTH; x++) {
-
-                String out;
-
-                if (MASK[y][x] == 0) {
-                    out = "\"       \""; // 7 spaces
-                } else {
-                    int rgb = img.getRGB(x, y) & 0xFFFFFF;
-                    String hex = String.format("#%06X", rgb);
-                    out = "\"" + hex + "\"";
-                }
-
-                System.out.print(out);
-                if (x < WIDTH - 1) System.out.print(", ");
+            if (compass.isMatch()) {
+                System.out.println("Compass image matches the reference!");
+            } else {
+                System.out.println("Compass image does NOT match the reference.");
             }
-
-            System.out.println("},");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        System.out.println("};");
     }
     
     /** Returns true if all mask-covered pixels match the reference colors. */
@@ -134,31 +60,46 @@ public class Compass {
         return match;
     }
 
-    private static boolean scan(BufferedImage img) {
+    static boolean scan(BufferedImage img) {
+    	int colorIndex = 0;
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
+            	
+            	int bitIndex = y * WIDTH + x;
+            	boolean masked = (bitIndex < 64)
+            			? ((MASK_LO >>> bitIndex) & 1L) != 0 
+            			: ((MASK_HI >>> (bitIndex - 64)) & 1L) != 0;
+            	
+            	if (!masked) continue; 
+            	
+            	int actual = img.getRGB(x, y) & 0xFFFFFF;
+            	int expected = COLOR_VALUES[colorIndex++] & 0xFFFFFF;
 
-            	String expected = COLORS[y][x];
-
-                // skip if mask=0 OR expected color is empty string
-                if (StringUtils.isBlank(expected) || MASK[y][x] == 0) {
-                    continue;
-                }
-
-                int actualRGB = img.getRGB(x, y) & 0xFFFFFF;
-                int expectedRGB = parseHex(expected) & 0xFFFFFF;
-
-                if (actualRGB != expectedRGB) {
+                if (!colorsClose(actual, expected, 20)) {
+                    if (test) {
+                        System.out.printf("actual %d does not match expected %d at position %d, %d\n",
+                            actual, expected, x, y);
+                    }
                     return false;
                 }
             }
         }
         return true;
     }
+    
+    private static boolean colorsClose(int rgb1, int rgb2, int tolerance) {
+        int r1 = (rgb1 >> 16) & 0xFF;
+        int g1 = (rgb1 >> 8) & 0xFF;
+        int b1 = rgb1 & 0xFF;
 
-    // Converts "#RRGGBB" into java int RGB
-    private static int parseHex(String hex) {
-        Color c = Color.decode(hex);
-        return c.getRGB();
+        int r2 = (rgb2 >> 16) & 0xFF;
+        int g2 = (rgb2 >> 8) & 0xFF;
+        int b2 = rgb2 & 0xFF;
+
+        int dr = r1 - r2;
+        int dg = g1 - g2;
+        int db = b1 - b2;
+
+        return dr*dr + dg*dg + db*db <= tolerance*tolerance;
     }
 }
