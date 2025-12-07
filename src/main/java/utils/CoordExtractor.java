@@ -14,11 +14,6 @@ public class CoordExtractor {
 	public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
 	public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
 	
-	public static void main(String[] args) throws Exception
-	{
-		
-	}
-	
     public static Point getPoint(BufferedImage coordCrop, boolean silent) throws IOException {
         Point p = null;
 
@@ -45,13 +40,19 @@ public class CoordExtractor {
         
         if (!allString.isEmpty())
         {
-        	System.out.println(allString);
+        	if (!silent)
+        	{
+        		System.out.println(allString);
+        	}
 
             int xVal = Integer.parseInt(allString.split(",")[0]);
             int yVal = Integer.parseInt(allString.split(",")[1]);
 
             String digitParsed = xVal + ", " + yVal;
-            System.out.println("Digitparsed: " + digitParsed);
+            
+            if (!silent) {
+            	System.out.println("Digitparsed: " + digitParsed);
+            }
 
             Point actualCoords = new Point(xVal, yVal);
             p = actualCoords;

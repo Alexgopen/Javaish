@@ -67,6 +67,8 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     private static final long tickRate = 250;
     
     private static long failureDelay = 0;
+    
+    private boolean firstRender = true;
 
     public static void failedToFindCoord()
     {
@@ -589,7 +591,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
                     offsetPoint.x, normXNew, normXLast, lastPoint.x, mCoord.x);
         }
         else {
-            int signum = offsetPoint.x == 0 ? -1 : offsetPoint.x / Math.abs(offsetPoint.x);
+            int signum = offsetPoint.x / Math.abs(offsetPoint.x);
             signum *= -1;
             int fakeOffset = signum * (Math.abs(offsetPoint.x) + (imageDimms.x / 2));
             int mapNeighbor = Math.abs(fakeOffset) / imageDimms.x;
