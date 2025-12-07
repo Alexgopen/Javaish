@@ -634,6 +634,15 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
         double speed = averageSpeedLastN(5);
         String speedNewText = String.format("Speed: %3.2f kt", speed);
         g2.drawString(speedNewText, 15, textInitY + inc * row++);
+        
+        double units = 0;
+        for (TrackPoint tp : trackPoints)
+        {
+        	units += tp.distanceFromPrev;
+        }
+        double nmi = (21600.0 / 16384.0) * units;
+        String distanceText = String.format("Distance: %3.2f nmi", nmi);
+        g2.drawString(distanceText, 15, textInitY + inc * row++);
     }
 
     @Override

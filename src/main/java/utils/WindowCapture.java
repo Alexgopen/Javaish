@@ -44,7 +44,7 @@ public class WindowCapture {
 		BufferedImage coordCrop = null;
 
 		BufferedImage ss = getUwoWindowScreenShot();
-		ImageIO.write(ss, "png", new File("uwoss.png"));
+		// ImageIO.write(ss, "png", new File("uwoss.png"));
 
 		Rectangle found = null;
 		if (prevFoundCoords == null && WindowCapture.shouldSearchCoords()) {
@@ -73,7 +73,7 @@ public class WindowCapture {
 				BufferedImage crop = cropImage(ss, found);
 				coordCrop = crop;
 				// optionally write debug
-				ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
+				// ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
 				// Also attempt parsing to show result
 				try {
 					Point p = CoordExtractor.getPoint(coordCrop, true);
@@ -120,7 +120,7 @@ public class WindowCapture {
 		// System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
 
 		BufferedImage quadrant = cropImage(ss, new Rectangle(startX, startY, widthX, heightY));
-		ImageIO.write(quadrant, "png", new File("quadrant.png"));
+		// ImageIO.write(quadrant, "png", new File("quadrant.png"));
 
 		for (int y = startY; y <= maxY; y++) {
 			for (int x = startX; x <= maxX; x++) {
