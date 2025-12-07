@@ -67,7 +67,7 @@ public class GvoJavaish extends JPanel implements MouseListener, MouseMotionList
     public GvoJavaish() {
         try {
             String map = "map.png";
-            map = "uwogrid.png";
+            map = "/uwogrid.png";
             imageMap = ImageIO.read(GvoJavaish.class.getResource(map));
 
             imageDimms.x = imageMap.getWidth();

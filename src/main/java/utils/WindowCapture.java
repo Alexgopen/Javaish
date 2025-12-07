@@ -4,6 +4,7 @@ import java.awt.AWTException;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,6 +17,9 @@ import com.sun.jna.Structure;
 import com.sun.jna.win32.StdCallLibrary;
 
 public class WindowCapture {
+	
+	private static Rectangle prevFoundCoords = null;
+	
     public static void main(String[] args) throws AWTException, IOException {
         BufferedImage crop = getCoordCrop();
         ImageIO.write(crop, "png", new File("crop.png"));
@@ -28,22 +32,116 @@ public class WindowCapture {
         BufferedImage ss = getUwoWindowScreenShot();
         ImageIO.write(ss, "png", new File("uwoss.png"));
         
-        // This is not a safe way to crop the coordinates
-        int arbitraryLeftCrop = 63;
-        int arbitraryUpCrop = 266;
-        int coordSectionWidth = 60;
-        int coordSectionHeight = 10;
-        Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop, coordSectionWidth, coordSectionHeight);
-
-        try {
-            BufferedImage crop = cropImage(ss, rect);
-            coordCrop = crop;
+        Rectangle found = null;
+        if (prevFoundCoords == null)
+        {
+        	// Try to locate the coordinate display by scanning the lower-right quadrant
+            long startTime = System.currentTimeMillis();
+            found = findCoordInLowerRightQuadrant(ss);
+            long endTime = System.currentTimeMillis();
+            System.out.println("Quadrant coord search took "+(endTime-startTime)+" ms");
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        else
+        {
+        	found = WindowCapture.prevFoundCoords;
+        }
+        
+        
+        if (found != null) {
+            try {
+                BufferedImage crop = cropImage(ss, found);
+                coordCrop = crop;
+                System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
+                // optionally write debug
+                ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
+                // Also attempt parsing to show result
+                try {
+                    Point p = CoordExtractor.getPoint(coordCrop);
+                    System.out.printf("Parsed coords: %s\n", p);
+                } catch (Exception e) {
+                	WindowCapture.prevFoundCoords = null;
+                    System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
+                }
+            } catch (Exception e) {
+            	WindowCapture.prevFoundCoords = null;
+                e.printStackTrace();
+            }
+        } 
+        else if (false) {
+        	WindowCapture.prevFoundCoords = null;
+            // Fallback to original arbitrary crop to preserve old behavior
+            System.err.println("Coordinate display not auto-detected — using arbitrary fallback crop.");
+            int arbitraryLeftCrop = 63;
+            int arbitraryUpCrop = 266;
+            Rectangle rect = new Rectangle(ss.getWidth() - arbitraryLeftCrop, ss.getHeight() - arbitraryUpCrop, CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
+            try {
+                BufferedImage crop = cropImage(ss, rect);
+                coordCrop = crop;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+        	WindowCapture.prevFoundCoords = null;
         }
 
         return coordCrop;
+    }
+    
+    /**
+     * Search the lower-right quadrant for a valid coordinate display.
+     * Scans top->bottom, left->right within the quadrant and attempts to parse
+     * a 60x10 crop at each location using CoordExtractor.getPoint().
+     *
+     * @param ss full screenshot of the game window
+     * @return Rectangle of the first found crop, or null if not found
+     */
+    private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) {
+        final int width = ss.getWidth();
+        final int height = ss.getHeight();
+
+        // Define lower-right quadrant bounds. We use half width/height to approximate quadrant.
+        final int startX = width / 2;
+        final int startY = height / 2;
+        final int maxX = width - CoordExtractor.COORD_SECTION_WIDTH;
+        final int maxY = height - CoordExtractor.COORD_SECTION_HEIGHT;
+
+        System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
+
+        for (int y = startY; y <= maxY; y++) {
+            for (int x = startX; x <= maxX; x++) {
+                try {
+                    Rectangle candidateRect = new Rectangle(x, y, CoordExtractor.COORD_SECTION_WIDTH, CoordExtractor.COORD_SECTION_HEIGHT);
+                    BufferedImage candidate = cropImage(ss, candidateRect);
+
+                    // Quick sanity: we might skip candidates that are uniformly blank or all black/white,
+                    // but here we'll directly attempt to parse with your existing extractor.
+                    try {
+                        Point p = CoordExtractor.getPoint(candidate);
+                        if (p != null) {
+                            // success: return the location of the candidate crop
+                            System.out.printf("Found parseable coordinate crop at (%d,%d) -> %s\n", x, y, p);
+                            return candidateRect;
+                        }
+                    } catch (NumberFormatException nfe) {
+                        // parsed digits but not a valid coordinate string; skip
+                    } catch (IOException ioe) {
+                        // Digit writing IO or similar - ignore and continue scanning
+                    } catch (Exception ex) {
+                        // Any other parse-time exception: ignore and continue scanning
+                    }
+                } catch (RasterFormatException rfe) {
+                    // skip invalid subimage regions (shouldn't happen because of bounds)
+                } catch (Exception e) {
+                    // unexpected; print debug and continue
+                    // System.err.println("Unexpected error while scanning candidate: " + e.getMessage());
+                }
+            }
+        }
+
+        // nothing found
+        return null;
     }
 
     public static BufferedImage getUwoWindowScreenShot() throws AWTException {

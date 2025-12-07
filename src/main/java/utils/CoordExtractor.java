@@ -8,6 +8,10 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class CoordExtractor {
+	
+	public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
+	public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
+	
 	public static void main(String[] args) throws Exception
 	{
 		
