@@ -20,12 +20,6 @@ public class WindowCapture {
 
 	private static Rectangle prevFoundCoords = null;
 
-	public static void main(String[] args) throws AWTException, IOException {
-		BufferedImage crop = getCoordCrop();
-		ImageIO.write(crop, "png", new File("crop.png"));
-		System.out.println("Wrote crop");
-	}
-
 	public static BufferedImage getCoordCrop() throws AWTException, IOException {
 		BufferedImage coordCrop = null;
 
@@ -36,18 +30,19 @@ public class WindowCapture {
 		if (prevFoundCoords == null) {
 			// Try to locate the coordinate display by scanning the lower-right quadrant
 			long startTime = System.currentTimeMillis();
-			found = findCoordInLowerRightQuadrant(ss);
+			found = findCoordInLowerRightSplitQuadrant(ss);
 			long endTime = System.currentTimeMillis();
 			System.out.println("Quadrant coord search took " + (endTime - startTime) + " ms");
+			System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
 		} else {
 			found = WindowCapture.prevFoundCoords;
+			System.out.printf("Using previously found coord crop at (%d,%d)\n", found.x, found.y);
 		}
 
 		if (found != null) {
 			try {
 				BufferedImage crop = cropImage(ss, found);
 				coordCrop = crop;
-				System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
 				// optionally write debug
 				ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
 				// Also attempt parsing to show result
@@ -92,20 +87,22 @@ public class WindowCapture {
 	 * @return Rectangle of the first found crop, or null if not found
 	 * @throws IOException
 	 */
-	private static Rectangle findCoordInLowerRightQuadrant(BufferedImage ss) throws IOException {
+	private static Rectangle findCoordInLowerRightSplitQuadrant(BufferedImage ss) throws IOException {
 		final int width = ss.getWidth();
 		final int height = ss.getHeight();
 
 		// Define lower-right quadrant bounds. We use half width/height to approximate
 		// quadrant.
-		final int startX = width / 2;
+		final int startX = width / 2 + width / 4;
 		final int startY = height / 2;
 		final int maxX = width;
 		final int maxY = height;
+		final int widthX = width / 2 - width / 4;
+		final int heightY = height / 2;
 
 		System.out.printf("Scanning for coord display in region x [%d..%d], y [%d..%d]\n", startX, maxX, startY, maxY);
 
-		BufferedImage quadrant = cropImage(ss, new Rectangle(startX, startY, startX, startY));
+		BufferedImage quadrant = cropImage(ss, new Rectangle(startX, startY, widthX, heightY));
 		ImageIO.write(quadrant, "png", new File("quadrant.png"));
 
 		for (int y = startY; y <= maxY; y++) {
@@ -129,7 +126,8 @@ public class WindowCapture {
 						    	BufferedImage candidate2 = cropImage(ss,fullRect);
 						    	Point p2 = CoordExtractor.getPoint(candidate2, true);
 								System.out.printf("Found full coordinate crop at (%d,%d) -> %s\n", fullRect.x, fullRect.y, p2);
-						        return fullRect;
+						        WindowCapture.prevFoundCoords = fullRect;
+								return fullRect;
 						    } else {
 								System.out.printf("Found risky coordinate crop at (%d,%d) -> %s\n", x, y, p);
 						        return candidateRect;
