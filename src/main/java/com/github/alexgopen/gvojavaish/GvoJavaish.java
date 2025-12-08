@@ -39,6 +39,7 @@ import utils.WindowCapture;
 
 // Do i put coords in another layer and overlay+tile it left and right?
 
+// Clear plot needs to reset statistics
 public class GvoJavaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
