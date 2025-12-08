@@ -118,13 +118,29 @@
 			            <goals><goal>run</goal></goals>
 			            <configuration>
 			                <target>
-			                    <echo file="${project.build.directory}/output/javaish.sh" append="false">
+			                    <echo file="${project.build.directory}/output/linux_javaish.sh" append="false">
 									<![CDATA[
 										#!/usr/bin/env bash
 nohup java -jar "$(dirname "$0")/javaish.jar" "$@" >/dev/null 2>&1 &
 					                ]]>
 			                    </echo>
-			                    <chmod file="${project.build.directory}/output/javaish.sh" perm="755"/>
+			                    <chmod file="${project.build.directory}/output/linux_javaish.sh" perm="755"/>
+			                </target>
+			            </configuration>
+			        </execution>
+			        <execution>
+			            <id>create-launcher-bat</id>
+			            <phase>package</phase>
+			            <goals><goal>run</goal></goals>
+			            <configuration>
+			                <target>
+			                    <echo file="${project.build.directory}/output/windows_javaish.bat" append="false">
+									<![CDATA[
+									@echo off
+									set SCRIPT_DIR=%~dp0
+									start "" java -jar "%SCRIPT_DIR%javaish.jar" %*
+									]]>
+			                    </echo>
 			                </target>
 			            </configuration>
 			        </execution>
