@@ -17,6 +17,11 @@ public class WindowCapture {
 	private static Rectangle prevFoundCoords = null;
 	private static long lostCoordsTimestamp = 0;
 
+	public static boolean onCooldown()
+	{
+		return WindowCapture.lostCoordsTimestamp != 0 && (System.currentTimeMillis() - WindowCapture.lostCoordsTimestamp) < 5000;
+	}
+	
 	public static void resetPrevFoundCoords()
 	{
 		WindowCapture.prevFoundCoords = null;
@@ -42,6 +47,8 @@ public class WindowCapture {
 
 		Rectangle found = null;
 		if (prevFoundCoords == null && WindowCapture.shouldSearchCoords()) {
+			System.out.println("Searching for coord region.");
+			
 			ss = WindowCapture.getAllMonitorScreenshot();
 			
 			WindowCapture.lostCoordsTimestamp = 0;
