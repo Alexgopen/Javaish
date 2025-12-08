@@ -14,16 +14,19 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import v3.exception.CoordNotFoundException;
+import v3.exception.InvalidMapException;
 import v3.exception.WindowNotFoundException;
 import v3.model.Point;
 import v3.model.TrackPoint;
@@ -84,14 +87,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     public JavaishV3() {
     	
         try {
-            String map = "/uwogrid.png";
-            imageMap = ImageIO.read(JavaishV3.class.getResource(map));
-
-            imageDimms.x = imageMap.getWidth();
-            imageDimms.y = imageMap.getHeight();
+        	loadMap();
         }
-        catch (IOException e) {
+        catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Failed to load map file, exiting.");
+            System.exit(1);
         }
 
         this.setFocusable(true);
@@ -108,6 +109,78 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         JavaishV3.gvojavaish = this;
 
         this.startCoordThread();
+    }
+    
+    private void loadMap() throws IOException
+    {
+		boolean error = false;
+        // Try loading map.png from current working directory
+        File mapFile = new File("map.png");
+        BufferedImage tmp = null;
+
+        if (mapFile.exists()) {
+            try {
+                tmp = ImageIO.read(mapFile);
+                if (tmp == null) {
+                	throw new IOException();
+                }
+            } catch (IOException e) {
+                tmp = null;
+                String message = "Failed to read map.png (unsupported/invalid image). Falling back to default map.";
+                System.err.println(message);
+                JOptionPane.showMessageDialog(
+                    null,
+                    message,
+                    "Map load error",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                error = true;
+            }
+
+            if (tmp != null) {
+                // validate size
+                if (tmp.getWidth() != 4096 || tmp.getHeight() != 2048) {
+                	String message = String.format("map.png has wrong dimensions: %dx%d (expected 4096x2048). Falling back to default map.",
+                            tmp.getWidth(), tmp.getHeight());
+                	System.err.println(message);
+                    JOptionPane.showMessageDialog(
+                        null,
+                        message,
+                        "Map size error",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+                    tmp = null;
+                    error = true;
+                }
+            }
+        }
+
+        // Couldn't load a valid external map, load bundled default
+        if (tmp == null) {
+        	if (error)
+        	{
+        		System.err.println("Failed to load map, falling back to default map.");
+        	}
+        	else
+        	{
+        		String message = "Map not found at "+mapFile.getAbsolutePath()+", falling back to default map.";
+        		System.err.println(message);
+        		JOptionPane.showMessageDialog(
+                        null,
+                        message,
+                        "Map not found",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+        	}
+            tmp = ImageIO.read(JavaishV3.class.getResource("/defaultmap.png"));
+            if (tmp == null) {
+                throw new IOException("Default map resource missing or unreadable.");
+            }
+        }
+        
+        imageMap = tmp;
+        imageDimms.x = imageMap.getWidth();
+        imageDimms.y = imageMap.getHeight();
     }
     
     private void startCoordThread() {
