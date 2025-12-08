@@ -165,16 +165,19 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             }
                         }
 
-                        // Skip this point if speed is more than 5x the recent average
-                        if (avgSpeed > 0 && (newSpeed > 10 * avgSpeed || newSpeed >= 50)) {
+                        // Skip this point if speed is more than 5x the recent average and greater than 2
+                        if (avgSpeed > 0 && (newSpeed > 10 * avgSpeed && newSpeed > 3 || newSpeed >= 50)) {
                             System.err.println("Skipped spike point: newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
                             continue; // skip adding this point
                         }
                         
-                        System.err.println("Dist=" + dist + ", delta=" + timeDelta);
                         if (timeDelta > 1000 && dist >= 2) {
                         	TrackPoint tp = new TrackPoint(worldCoord, mapCoord, currentTime, distTp, deltaTimeTp);
                             trackPoints.add(tp);
+                            if (dist != 999)
+                            {
+                            	System.err.println("Dist=" + dist + ", delta=" + timeDelta+", pos="+tp.world.toString()+", newSpeed="+newSpeed+", avgSpeed="+avgSpeed);
+                            }
                             JavaishV3.lastTime = currentTime;
                             JavaishV3.gvojavaish.points.add(mapCoord);
                             JavaishV3.gvojavaish.repaint();
@@ -909,8 +912,16 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_R) {
+    	if (e.getKeyCode() == KeyEvent.VK_R) {
+            // Clear plotted map points
             points.clear();
+
+            // Clear tracking points (coordinates, distance, speed, rotation)
+            trackPoints.clear();
+
+            // Reset timing
+            lastTime = -1;
+
             repaint();
         }
     }

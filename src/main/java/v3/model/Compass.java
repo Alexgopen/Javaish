@@ -42,7 +42,7 @@ public class Compass {
 	    		
 	    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
 	    		
-	    		System.out.println("Is coordinate?: "+pcoord.toString());
+	    		// System.out.println("Is coordinate?: "+pcoord.toString());
 	    		
 	    		if (pcoord != null)
 	    		{

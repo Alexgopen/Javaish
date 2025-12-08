@@ -17,7 +17,7 @@ public class CoordProvider {
         	throw new CoordNotFoundException();
         }
         else {
-        	System.out.println("Latest coord: "+p.toString());
+        	// System.out.println("Latest coord: "+p.toString());
         }
         
         return p;

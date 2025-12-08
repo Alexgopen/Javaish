@@ -87,7 +87,7 @@ public class WindowCapture {
 				try {
 					Point p = CoordExtractor.getPoint(coordCrop, true);
 					
-					System.out.printf("Parsed coords: %s\n", p);
+					// System.out.printf("Parsed coords: %s\n", p);
 				} catch (Exception e) {
 					WindowCapture.resetPrevFoundCoords();
 					//System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());

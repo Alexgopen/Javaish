@@ -41,7 +41,7 @@ public class CoordExtractor {
         {
         	if (!silent)
         	{
-        		System.out.println(allString);
+        		// System.out.println(allString);
         	}
 
             int xVal = Integer.parseInt(allString.split(",")[0]);
@@ -50,7 +50,7 @@ public class CoordExtractor {
             String digitParsed = xVal + ", " + yVal;
             
             if (!silent) {
-            	System.out.println("Digitparsed: " + digitParsed);
+            	// System.out.println("Digitparsed: " + digitParsed);
             }
 
             Point actualCoords = new Point(xVal, yVal);
