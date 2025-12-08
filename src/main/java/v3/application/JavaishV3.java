@@ -32,11 +32,10 @@ import v3.utils.WindowCapture;
 
 // Ideas:
 // Mark coords of each point
-// List total distance of current trip
 // List duration of current trip
 // Mark shipwreck hits (triangulation)
 // Implement zoom
-// How is circumnavigation handled?  Do we render the points on every map
+// How is circumnavigation handled?  Should we render the points on every map
 
 // Do i put coords in another layer and overlay+tile it left and right?
 
@@ -84,8 +83,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     public JavaishV3() {
     	
         try {
-            String map = "map.png";
-            map = "/uwogrid.png";
+            String map = "/uwogrid.png";
             imageMap = ImageIO.read(JavaishV3.class.getResource(map));
 
             imageDimms.x = imageMap.getWidth();
@@ -95,20 +93,24 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             e.printStackTrace();
         }
 
-        setFocusable(true);
-        requestFocus();
-        setPreferredSize(new Dimension(800, 600));
-        addMouseListener(this);
-        addMouseMotionListener(this);
-        addKeyListener(this);
+        this.setFocusable(true);
+        this.requestFocus();
+        this.setPreferredSize(new Dimension(800, 600));
+        this.addMouseListener(this);
+        this.addMouseMotionListener(this);
+        this.addKeyListener(this);
         
         // Auto-center before first render
-        centerOnInitialCoord();
+        this.centerOnInitialCoord();
 
         JavaishV3.coordProvider = new CoordProvider();
         JavaishV3.gvojavaish = this;
 
-        Thread coordThread = new Thread(new Runnable() {
+        this.startCoordThread();
+    }
+    
+    private void startCoordThread() {
+    	Thread coordThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
@@ -218,14 +220,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         double unitsPerSec =  totalDist / totalTime * 1000.0; // units per second
         
         return gvonavishKt(unitsPerSec);
-    }
-    
-    public static double nauticalMileKt(double unitsPerSec) {     
-        double worldToNm = 21600.0 / 16384.0; // 21600 real nautical miles is 16384 coordinate units ingame
-        double timeScale = 1.0 / 1440.0; // 1 real minute is 1 ingame day (24*60 minutes)
-        double secondsPerHr = 3600;
-            
-        return unitsPerSec * worldToNm * secondsPerHr * timeScale;
     }
 
     public static double gvonavishKt(double unitsPerSec)
@@ -704,7 +698,11 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         {
         	units += tp.distanceFromPrev;
         }
-        double nmi = (21600.0 / 16384.0) * units;
+        
+		double gvonavishNmiCircumference = (2 * Math.PI * 6378.137) / 1.852; 
+		double nmiFactor = gvonavishNmiCircumference / 16384.0;
+		
+        double nmi = nmiFactor * units;
         String distanceText = String.format("Distance: %3.2f nmi", nmi);
         g2.drawString(distanceText, 15, textInitY + inc * row++);
         
