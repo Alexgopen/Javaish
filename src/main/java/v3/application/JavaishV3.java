@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -440,8 +441,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                 maxFactorY = max;
             }
 
-            int lowestFactor = (int) (0.5 * Math.max(0, Math.min(maxFactorX, maxFactorY) - 1));
-
             // WITH THIS:
             double smoothedHeadingDeg = averageHeadingLastN(5) - 90;
             double smoothedHeadingRad = Math.toRadians(smoothedHeadingDeg);
@@ -535,8 +534,15 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     }
 
-    public void renderHover(final Graphics g2) {
+    public void renderHover(final Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
 
+        // Enable full antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+    	
         if (mousePoint.x == Integer.MIN_VALUE || mousePoint.y == Integer.MIN_VALUE) {
             return;
         }
@@ -545,7 +551,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         String coords = String.format("%d, %d", worldPoint.x, worldPoint.y);
 
         g2.setColor(new Color(0, 0, 0, 70));
-        g2.fillRect(mousePoint.x, mousePoint.y - 16, coords.length() * 8 + 8, 16);
+        g2.fillRect(mousePoint.x, mousePoint.y - 16, coords.length() * 7, 16);
 
         Color textColor = Color.WHITE;
         g2.setColor(textColor);
@@ -565,12 +571,10 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         int maxWidth = 16384;
 
-        float x = worldPoint.x / 250f;
-        x *= 1000;
+        float x = worldPoint.x * coordsPerPixel;
         worldPoint.x = (int) x;
 
-        float y = worldPoint.y / 250f;
-        y *= 1000;
+        float y = worldPoint.y * coordsPerPixel;
         worldPoint.y = (int) y;
 
         if (worldPoint.x >= maxWidth) {
@@ -583,36 +587,41 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         }
     }
 
-    public void renderHint(final Graphics g2) {
+    public void renderHint(final Graphics g) {
+        Graphics2D g2 = (Graphics2D) g;
 
+        // Enable full antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+
+        // Background box
         g2.setColor(new Color(0, 0, 0, 70));
-        g2.fillRect(15, this.getHeight() - 93, 200, 70);
+        g2.fillRect(15, this.getHeight() - 65, 173, 50);
 
-        int textInitY = this.getHeight() - 70;
+        int textInitY = this.getHeight() - 44;
         int row = 0;
         int inc = 20;
 
-        Color textColor = Color.CYAN;
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Verdana", Font.PLAIN, 20));
 
-        g2.setColor(textColor);
-        g2.setFont(new Font("Verdana", 0, 20));
-
-        // Drag text
-        String dragText = String.format("Left-Click to drag");
-        g2.drawString(dragText, 22, textInitY + inc * row++);
-
-        // Plot text
-        String plotText = String.format("Right-Click for settings");
-        g2.drawString(plotText, 22, textInitY + inc * row++);
-
-        // Clear text
-        String clearText = String.format("R to clear plot");
-        g2.drawString(clearText, 22, textInitY + inc * row++);
+        // Draw text
+        g2.drawString("Left-Click to drag", 22, textInitY + inc * row++);
+        g2.drawString("R to clear plot",   22, textInitY + inc * row++);
     }
 
-    public void renderText(final Graphics g2) {
-
-        Color textColor = Color.MAGENTA;
+    public void renderText(final Graphics g) {
+    	Graphics2D g2 = (Graphics2D) g;
+    	
+        // Enable full antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+    	
+        Color textColor = Color.WHITE;
 
         g2.setColor(textColor);
         g2.setFont(new Font("Verdana", 0, 20));

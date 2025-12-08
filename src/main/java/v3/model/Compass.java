@@ -31,7 +31,6 @@ public class Compass {
         }
         this.match = scan(img);
     }
-
     
     /**
      * MAIN METHOD FOR EXTRACTION
@@ -92,80 +91,12 @@ public class Compass {
     	}
     }
     
-    private static void doTestReadCoordsFromCompass() throws IOException
-    {
-    	BufferedImage img = searchImage();
-    	Point p2 = findInImageBackwards(img);
-    	
-    	if (p2 != null)
-    	{
-    		int compassToCoordOffsetX = 62;
-    		int compassToCoordOffsetY = 6;
-    		BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
-    		
-    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
-    		
-    		System.out.println("Is coordinate?: "+pcoord.toString());
-    	}
-    }
-    
     private static BufferedImage searchImage() throws IOException
     {
     	File file = new File("/home/alex/Pictures/image.png");
         BufferedImage img = ImageIO.read(file);
         
         return img;
-    }
-    
-    private static void doTestSearch() {
-        try {
-            BufferedImage img = searchImage();
-
-            long start = System.currentTimeMillis();
-            Point p = findInImageForwards(img);
-            long end = System.currentTimeMillis();
-            long diff = (end - start);
-            System.out.println("Forwards took "+diff+" ms");
-            
-            if (p != null) {
-                System.out.println("Found compass forwards at "+p.toString());
-            } else {
-                System.out.println("No compass found forwards in image.");
-            }
-            
-            long start2 = System.currentTimeMillis();
-            Point p2 = findInImageBackwards(img);
-            long end2 = System.currentTimeMillis();
-            long diff2 = (end2 - start2);
-            System.out.println("Backwards took "+diff2+" ms");
-
-            if (p2 != null) {
-                System.out.println("Found compass backwards at "+p2.toString());
-            } else {
-                System.out.println("No compass found backwards in image.");
-            }            
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private static void doTestExact()
-    {
-    	test = true;
-        try {
-            File file = new File("/home/alex/Pictures/compasstest.png");
-            BufferedImage img = ImageIO.read(file);
-
-            Compass compass = new Compass(img);
-
-            if (compass.isMatch()) {
-                System.out.println("Compass image matches the reference!");
-            } else {
-                System.out.println("Compass image does NOT match the reference.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
     
     /**

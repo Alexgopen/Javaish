@@ -21,7 +21,7 @@ public class CoordExtractor {
 
         String allString = "";
         for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
-            BufferedImage digitPixels = cropImage(coordCrop, new Rectangle(i * digitWidth, 0, digitWidth, height));
+            BufferedImage digitPixels = ImageUtils.cropImage(coordCrop, new Rectangle(i * digitWidth, 0, digitWidth, height));
             //ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
             
             Digit d = new Digit(digitPixels);
@@ -67,10 +67,5 @@ public class CoordExtractor {
         }
 
         return p;
-    }
-
-    private static BufferedImage cropImage(BufferedImage src, Rectangle rect) {
-        BufferedImage dest = src.getSubimage(rect.x, rect.y, rect.width, rect.height);
-        return dest;
     }
 }
