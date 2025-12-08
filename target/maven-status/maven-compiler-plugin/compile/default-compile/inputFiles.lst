@@ -1,9 +1,12 @@
 /home/alex/git/GVOJavaish/src/main/java/com/github/alexgopen/gvojavaish/GvoJavaish.java
 /home/alex/git/GVOJavaish/src/main/java/com/github/alexgopen/gvojavaish/TestRunner.java
 /home/alex/git/GVOJavaish/src/main/java/exceptions/CoordNotFoundException.java
+/home/alex/git/GVOJavaish/src/main/java/exceptions/WindowNotFoundException.java
 /home/alex/git/GVOJavaish/src/main/java/javishv2/GameMap.java
 /home/alex/git/GVOJavaish/src/main/java/javishv2/InputHandler.java
 /home/alex/git/GVOJavaish/src/main/java/javishv2/Javish.java
+/home/alex/git/GVOJavaish/src/main/java/utils/Compass.java
+/home/alex/git/GVOJavaish/src/main/java/utils/CompassToleranceTest.java
 /home/alex/git/GVOJavaish/src/main/java/utils/CoordExtractor.java
 /home/alex/git/GVOJavaish/src/main/java/utils/CoordProvider.java
 /home/alex/git/GVOJavaish/src/main/java/utils/Digit.java
@@ -11,3 +14,14 @@
 /home/alex/git/GVOJavaish/src/main/java/utils/TrackPoint.java
 /home/alex/git/GVOJavaish/src/main/java/utils/WindowCapture.java
 /home/alex/git/GVOJavaish/src/main/java/utils/X11WindowUtil.java
+/home/alex/git/GVOJavaish/src/main/java/v3/application/JavaishV3.java
+/home/alex/git/GVOJavaish/src/main/java/v3/exception/CoordNotFoundException.java
+/home/alex/git/GVOJavaish/src/main/java/v3/exception/WindowNotFoundException.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Compass.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Digit.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Point.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/TrackPoint.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/CoordExtractor.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/CoordProvider.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/WindowCapture.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/X11WindowUtil.java

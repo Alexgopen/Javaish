@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="maven-antrun-" default="main">
   <target name="main">
-    <copy file="/home/alex/git/GVOJavaish/target/gvojavaish-0.0.1-SNAPSHOT.jar" tofile="/home/alex/git/GVOJavaish/javaish.jar" overwrite="true" />
+    <copy file="/home/alex/git/GVOJavaish/target/javaish-0.0.1-SNAPSHOT.jar" tofile="/home/alex/git/GVOJavaish/javaish.jar" overwrite="true" />
   </target>
 </project>
