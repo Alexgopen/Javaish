@@ -67,7 +67,7 @@ public class WindowCapture {
 			try {
 				if (ss != null)
 				{
-					coordCrop = cropImage(ss, found);
+					coordCrop = ImageUtils.cropImage(ss, found);
 				}
 				else
 				{
@@ -118,10 +118,5 @@ public class WindowCapture {
         }
         
         return getScreenshotOfRectangle(allBounds);
-	}
-
-	private static BufferedImage cropImage(BufferedImage src, Rectangle rect) {
-		BufferedImage dest = src.getSubimage(rect.x, rect.y, rect.width, rect.height);
-		return dest;
 	}
 }

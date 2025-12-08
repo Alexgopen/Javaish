@@ -13,12 +13,10 @@ public class CoordProvider {
     	
         Point p = CoordExtractor.getPoint(coordCrop, true);
         
-        if (p == null)
-        {
+        if (p == null) {
         	throw new CoordNotFoundException();
         }
-        else
-        {
+        else {
         	System.out.println("Latest coord: "+p.toString());
         }
         

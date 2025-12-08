@@ -2,10 +2,6 @@ package v3.model;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
 
 import v3.exception.CoordNotFoundException;
 import v3.utils.CoordExtractor;
@@ -30,17 +26,6 @@ public class Compass {
             );
         }
         this.match = scan(img);
-    }
-    
-    /**
-     * MAIN METHOD FOR EXTRACTION
-     */
-    public static void main(String[] args) throws Exception {
-    	// Add timer
-    	// Work backwards from bottom right, right to left, up row by row?
-    	
-    	doTestReadCoordsFromCompassBroad();
-        
     }
     
     public static Rectangle findCoordCropFromCompass(BufferedImage img)
@@ -72,53 +57,6 @@ public class Compass {
     	}
     	
     	throw new CoordNotFoundException();
-    }
-    
-    private static void doTestReadCoordsFromCompassBroad() throws IOException
-    {
-    	BufferedImage img = searchImage();
-    	Point p2 = findInImageBackwards(img);
-    	
-    	if (p2 != null)
-    	{
-    		int compassToCoordOffsetX = 62;
-    		int compassToCoordOffsetY = 6;
-    		BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY, 60, 10);
-    		
-    		Point pcoord = CoordExtractor.getPoint(coordCrop, false);
-    		
-    		System.out.println("Is coordinate?: "+pcoord.toString());
-    	}
-    }
-    
-    private static BufferedImage searchImage() throws IOException
-    {
-    	File file = new File("/home/alex/Pictures/image.png");
-        BufferedImage img = ImageIO.read(file);
-        
-        return img;
-    }
-    
-    /**
-     * Search the given image for a match to the reference compass.
-     * Returns the top-left coordinates if found, or null if not found.
-     */
-    public static Point findInImageForwards(BufferedImage img) {
-        int firstPixel = COLOR_VALUES[0] & 0xFFFFFF;
-
-        for (int y = 0; y <= img.getHeight() - HEIGHT; y++) {
-            for (int x = 0; x <= img.getWidth() - WIDTH; x++) {
-                int rgb = img.getRGB(x, y) & 0xFFFFFF;
-                if (!colorsClose(rgb, firstPixel, 20)) continue;
-
-                // Candidate match: check full 6x20 area
-                BufferedImage sub = img.getSubimage(x, y, WIDTH, HEIGHT);
-                if (scan(sub)) {
-                    return new Point(x, y);
-                }
-            }
-        }
-        return null; // not found
     }
     
     /**
