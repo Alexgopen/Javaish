@@ -324,14 +324,20 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             x += imageDimms.x;
         }
 
-        renderText(g);
-        renderHover(g);
+        
         // renderPoints(g);
         renderPointsList(g);
         renderHint(g);
+        renderText(g);
+        renderHover(g);
     }
 
-    public void renderPointsList(final Graphics g2) {
+    public void renderPointsList(final Graphics g) {
+    	Graphics2D g2 = (Graphics2D)g;
+    	
+    	// Save old hints
+        RenderingHints oldHints = g2.getRenderingHints();
+    	
         int prevPointX = Integer.MIN_VALUE;
         int prevPointY = Integer.MIN_VALUE;
 
@@ -371,8 +377,18 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             int transX = curPointX;
             int transY = curPointY;
 
+            
+            
+            // Enable full antialiasing
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+            
             g2.setColor(new Color(0, 255, 0, 255));
             g2.fillOval(transX - 3, transY - 3, 6, 6);
+            
+            g2.setRenderingHints(oldHints);
         }
 
         if ((prevPointX != Integer.MIN_VALUE && prevPointY != Integer.MIN_VALUE)
@@ -380,6 +396,15 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             g2.setColor(new Color(255, 0, 0, 255));
             g2.drawLine(prevPointX, prevPointY, curPointX, curPointY);
 
+            
+            
+            // Enable full antialiasing
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+            
+            
             int xDiff = curPointX - prevPointX;
             int yDiff = curPointY - prevPointY;
 
@@ -484,6 +509,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         }
 
         if (player != null && isOffscreen(player)) {
+            // Enable full antialiasing
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        	
             Point edge = getEdgePoint(player);
             int size = 16;       // triangle size
             int tailLength = 26; // length of the arrow tail
@@ -532,11 +563,16 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             g2d.drawLine(tailX, tailY, edge.x, edge.y);
         }
 
+        // Restore previous hints
+        g2.setRenderingHints(oldHints);
     }
 
     public void renderHover(final Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
 
+        // Save old hints
+        RenderingHints oldHints = g2.getRenderingHints();
+        
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -558,6 +594,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         g2.setFont(new Font("Verdana", 1, 12));
 
         g2.drawString(coords, mousePoint.x + 4, mousePoint.y - 4);
+        
+        // Restore previous hints
+        g2.setRenderingHints(oldHints);
     }
 
     public void recalcWorldCoords() {
@@ -590,6 +629,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     public void renderHint(final Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
 
+        // Save old hints
+        RenderingHints oldHints = g2.getRenderingHints();
+        
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -610,10 +652,16 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         // Draw text
         g2.drawString("Left-Click to drag", 22, textInitY + inc * row++);
         g2.drawString("R to clear plot",   22, textInitY + inc * row++);
+        
+        // Restore previous hints
+        g2.setRenderingHints(oldHints);
     }
 
     public void renderText(final Graphics g) {
     	Graphics2D g2 = (Graphics2D) g;
+    	
+    	// Save old hints
+        RenderingHints oldHints = g2.getRenderingHints();
     	
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -659,6 +707,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         double nmi = (21600.0 / 16384.0) * units;
         String distanceText = String.format("Distance: %3.2f nmi", nmi);
         g2.drawString(distanceText, 15, textInitY + inc * row++);
+        
+        // Restore previous hints
+        g2.setRenderingHints(oldHints);
     }
 
     @Override

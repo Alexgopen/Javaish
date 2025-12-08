@@ -6,22 +6,10 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
-import java.awt.image.RasterFormatException;
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.imageio.ImageIO;
-
-import com.sun.jna.Native;
-import com.sun.jna.Structure;
-import com.sun.jna.win32.StdCallLibrary;
 
 import v3.exception.CoordNotFoundException;
-import v3.exception.WindowNotFoundException;
 import v3.model.Compass;
-import v3.model.Digit;
 import v3.model.Point;
 
 public class WindowCapture {
@@ -91,7 +79,8 @@ public class WindowCapture {
 				// Also attempt parsing to show result
 				try {
 					Point p = CoordExtractor.getPoint(coordCrop, true);
-					//System.out.printf("Parsed coords: %s\n", p);
+					
+					System.out.printf("Parsed coords: %s\n", p);
 				} catch (Exception e) {
 					WindowCapture.resetPrevFoundCoords();
 					//System.err.println("Parsing failed on found crop (unexpected): " + e.getMessage());
