@@ -1,0 +1,11 @@
+/home/alex/git/GVOJavaish/src/main/java/v3/application/JavaishV3.java
+/home/alex/git/GVOJavaish/src/main/java/v3/exception/CoordNotFoundException.java
+/home/alex/git/GVOJavaish/src/main/java/v3/exception/WindowNotFoundException.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Compass.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Digit.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/Point.java
+/home/alex/git/GVOJavaish/src/main/java/v3/model/TrackPoint.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/CoordExtractor.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/CoordProvider.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/ImageUtils.java
+/home/alex/git/GVOJavaish/src/main/java/v3/utils/WindowCapture.java
