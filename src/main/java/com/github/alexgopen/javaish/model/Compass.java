@@ -1,10 +1,10 @@
-package v3.model;
+package com.github.alexgopen.javaish.model;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
-import v3.exception.CoordNotFoundException;
-import v3.utils.CoordExtractor;
+import com.github.alexgopen.javaish.exception.CoordNotFoundException;
+import com.github.alexgopen.javaish.utils.CoordExtractor;
 
 public class Compass {
 

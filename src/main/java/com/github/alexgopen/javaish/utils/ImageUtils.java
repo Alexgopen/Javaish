@@ -1,4 +1,4 @@
-package v3.utils;
+package com.github.alexgopen.javaish.utils;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;

@@ -1,4 +1,4 @@
-package v3.model;
+package com.github.alexgopen.javaish.model;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;

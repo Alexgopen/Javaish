@@ -1,11 +1,11 @@
-package v3.utils;
+package com.github.alexgopen.javaish.utils;
 
 import java.awt.AWTException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-import v3.exception.CoordNotFoundException;
-import v3.model.Point;
+import com.github.alexgopen.javaish.exception.CoordNotFoundException;
+import com.github.alexgopen.javaish.model.Point;
 
 public class CoordProvider {
     public Point getCoord() throws AWTException, IOException {

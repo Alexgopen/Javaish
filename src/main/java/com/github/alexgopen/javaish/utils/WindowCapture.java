@@ -1,4 +1,4 @@
-package v3.utils;
+package com.github.alexgopen.javaish.utils;
 
 import java.awt.AWTException;
 import java.awt.GraphicsDevice;
@@ -8,9 +8,9 @@ import java.awt.Robot;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-import v3.exception.CoordNotFoundException;
-import v3.model.Compass;
-import v3.model.Point;
+import com.github.alexgopen.javaish.exception.CoordNotFoundException;
+import com.github.alexgopen.javaish.model.Compass;
+import com.github.alexgopen.javaish.model.Point;
 
 public class WindowCapture {
 
@@ -47,7 +47,7 @@ public class WindowCapture {
 
 		Rectangle found = null;
 		if (prevFoundCoords == null && WindowCapture.shouldSearchCoords()) {
-			System.out.println("Searching for coord region.");
+			// System.out.println("Searching for coord region.");
 			
 			ss = WindowCapture.getAllMonitorScreenshot();
 			

@@ -1,4 +1,4 @@
-package v3.model;
+package com.github.alexgopen.javaish.model;
 
 public class Point {
     public int x = Integer.MIN_VALUE;

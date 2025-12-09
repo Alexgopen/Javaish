@@ -1,12 +1,12 @@
-package v3.utils;
+package com.github.alexgopen.javaish.utils;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-import v3.exception.CoordNotFoundException;
-import v3.model.Digit;
-import v3.model.Point;
+import com.github.alexgopen.javaish.exception.CoordNotFoundException;
+import com.github.alexgopen.javaish.model.Digit;
+import com.github.alexgopen.javaish.model.Point;
 
 public class CoordExtractor {
 	

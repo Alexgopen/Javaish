@@ -1,4 +1,4 @@
-package v3.application;
+package com.github.alexgopen.javaish.application;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -25,23 +25,17 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import v3.exception.CoordNotFoundException;
-import v3.model.Point;
-import v3.model.TrackPoint;
-import v3.utils.CoordProvider;
-import v3.utils.WindowCapture;
+import com.github.alexgopen.javaish.exception.CoordNotFoundException;
+import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.TrackPoint;
+import com.github.alexgopen.javaish.utils.CoordProvider;
+import com.github.alexgopen.javaish.utils.WindowCapture;
 
 // Ideas:
-// Mark coords of each point
-// List duration of current trip
 // Mark shipwreck hits (triangulation)
 // Implement zoom
-// How is circumnavigation handled?  Should we render the points on every map
-
-// Do i put coords in another layer and overlay+tile it left and right?
-
-// Clear plot needs to reset statistics
-// Hover coords are wrong
+// How should circumnavigation be handled?  Should I render the points on every map?
+// Should I put coords in another layer and overlay+tile it left and right?
 public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
@@ -53,7 +47,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
     private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
     
-    // Seville
+    // Seville is a common starting point
     private Point initialCenterCoord = new Point(15903, 3271);
 
     private Point neighbors = new Point(-1, 0);
@@ -67,7 +61,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     boolean dragging;
 
-    private static JavaishV3 gvojavaish;
+    private static JavaishV3 javaish;
 
     private static long lastTime = -1;
     
@@ -104,7 +98,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         this.centerOnInitialCoord();
 
         JavaishV3.coordProvider = new CoordProvider();
-        JavaishV3.gvojavaish = this;
+        JavaishV3.javaish = this;
 
         this.startCoordThread();
     }
@@ -195,8 +189,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                         Point mapCoord = convertWtoM(coord);
                         int dist = 999;
 
-                        if (JavaishV3.gvojavaish.points.size() > 0) {
-                            Point lastCoord = JavaishV3.gvojavaish.points.get(JavaishV3.gvojavaish.points.size() - 1);
+                        if (JavaishV3.javaish.points.size() > 0) {
+                            Point lastCoord = JavaishV3.javaish.points.get(JavaishV3.javaish.points.size() - 1);
 
                             dist = (int) Math.sqrt(
                                     Math.pow(mapCoord.x - lastCoord.x, 2) + Math.pow(mapCoord.y - lastCoord.y, 2));
@@ -250,8 +244,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             	System.err.println("Dist=" + dist + ", delta=" + timeDelta+", pos="+tp.world.toString()+", newSpeed="+newSpeed+", avgSpeed="+avgSpeed);
                             }
                             JavaishV3.lastTime = currentTime;
-                            JavaishV3.gvojavaish.points.add(mapCoord);
-                            JavaishV3.gvojavaish.repaint();
+                            JavaishV3.javaish.points.add(mapCoord);
+                            JavaishV3.javaish.repaint();
                         }
 
                     }

@@ -1,4 +1,4 @@
-package v3.exception;
+package com.github.alexgopen.javaish.exception;
 
 public class CoordNotFoundException extends RuntimeException {
 
