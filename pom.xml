@@ -5,7 +5,7 @@
 
 	<groupId>javaish</groupId>
 	<artifactId>javaish</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>Javaish</name>
 	<description>Java rewrite of Uncharted Waters Online's GVONavish mapping utility.</description>
 
