@@ -138,7 +138,7 @@ nohup java -jar "$(dirname "$0")/javaish.jar" "$@" >/dev/null 2>&1 &
 									<![CDATA[
 									@echo off
 									set SCRIPT_DIR=%~dp0
-									start "" java -jar "%SCRIPT_DIR%javaish.jar" %*
+									start "" javaw -jar "%SCRIPT_DIR%javaish.jar" %*
 									]]>
 			                    </echo>
 			                </target>

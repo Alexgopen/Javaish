@@ -8,3 +8,7 @@ target
 /.settings
 /.settings/
 /.settings/**
+dist
+/dist
+/dist/
+/dist/**
