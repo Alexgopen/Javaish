@@ -26,8 +26,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import v3.exception.CoordNotFoundException;
-import v3.exception.InvalidMapException;
-import v3.exception.WindowNotFoundException;
 import v3.model.Point;
 import v3.model.TrackPoint;
 import v3.utils.CoordProvider;
@@ -256,11 +254,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             JavaishV3.gvojavaish.repaint();
                         }
 
-                    }
-                    catch (WindowNotFoundException wnfe)
-                    {
-                    	System.err.println("Window not found.");
-                    	WindowCapture.resetPrevFoundCoords();
                     }
                     catch (CoordNotFoundException cnfe)
                     {
