@@ -5,7 +5,7 @@
 
 	<groupId>javaish</groupId>
 	<artifactId>javaish</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>Javaish</name>
 	<description>Java rewrite of Uncharted Waters Online's GVONavish mapping utility.</description>
 
@@ -61,7 +61,7 @@
 							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>v3.application.JavaishV3</mainClass>
+									<mainClass>com.github.alexgopen.javaish.application.JavaishV3</mainClass>
 								</transformer>
 							</transformers>
 						</configuration>
