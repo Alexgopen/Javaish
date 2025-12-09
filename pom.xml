@@ -2,17 +2,18 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>javaish</groupId>
 	<artifactId>javaish</artifactId>
 	<version>1.0.0</version>
 	<name>Javaish</name>
-	<description>
-		Java rewrite of Uncharted Waters Online's GVONavish mapping utility.
-	</description>
+	<description>Java rewrite of Uncharted Waters Online's GVONavish mapping utility.</description>
+
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<dist.dir>${project.basedir}/dist/javaish-${project.version}</dist.dir>
 	</properties>
-	<!--Dependencies-->
+
 	<dependencies>
 		<dependency>
 		    <groupId>net.java.dev.jna</groupId>
@@ -30,155 +31,127 @@
 		    <version>3.9</version>
 		</dependency>
 	</dependencies>
+
 	<build>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
-										<artifactId>maven-compiler-plugin</artifactId>
-										<versionRange>[3.0,)</versionRange>
-										<goals>
-											<goal>compile</goal>
-											<goal>testCompile</goal>
-										</goals>
-										<parameters>
-											<compilerId>hubspot-javac</compilerId>
-										</parameters>
-									</pluginExecutionFilter>
-									<action>
-										<configurator>
-											<id>
-												org.eclipse.m2e.jdt.javaConfigurator</id>
-										</configurator>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.12.0</version>
-					<configuration>
-						<source>1.8</source>
-						<target>1.8</target>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 		<plugins>
+			<!-- Compiler plugin -->
 			<plugin>
-            	<groupId>org.apache.maven.plugins</groupId>
-            	<artifactId>maven-shade-plugin</artifactId>
-            	<version>3.6.0</version>
-	            <executions>
-	                <execution>
-	                    <phase>package</phase>
-	                    <goals>
-	                        <goal>shade</goal>
-	                    </goals>
-	                    <configuration>
-	                        <createDependencyReducedPom>false</createDependencyReducedPom>
-	                        <transformers>
-	                            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-	                                <mainClass>v3.application.JavaishV3</mainClass>
-	                            </transformer>
-	                        </transformers>
-	                    </configuration>
-	                </execution>
-	            </executions>
-    		</plugin>
-    		<plugin>
-			    <groupId>org.apache.maven.plugins</groupId>
-			    <artifactId>maven-antrun-plugin</artifactId>
-			    <version>3.1.0</version>
-			    <executions>
-			    	<!-- Clean /dist/javaish -->
-                    <execution>
-                        <id>clean-dist</id>
-                        <phase>install</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <delete dir="${dist.dir}" failonerror="false"/>
-                                <mkdir dir="${dist.dir}"/>
-                            </target>
-                        </configuration>
-                    </execution>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.12.0</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				</configuration>
+			</plugin>
 
-                    <!-- Copy shaded jar -->
-                    <execution>
-                        <id>copy-jar</id>
-                        <phase>install</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
-                                      tofile="${dist.dir}/javaish-${project.version}.jar"
-                                      overwrite="true"/>
-                            </target>
-                        </configuration>
-                    </execution>
+			<!-- Shade plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>v3.application.JavaishV3</mainClass>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
-                    <!-- Copy map.png -->
-                    <execution>
-                        <id>copy-map</id>
-                        <phase>install</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <copy file="${project.basedir}/map.png"
-                                      todir="${dist.dir}"
-                                      failonerror="false"/>
-                            </target>
-                        </configuration>
-                    </execution>
+			<!-- AntRun plugin for /dist -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<!-- Clean and recreate dist folder -->
+					<execution>
+						<id>clean-dist</id>
+						<phase>install</phase>
+						<goals><goal>run</goal></goals>
+						<configuration>
+							<target>
+								<delete dir="${dist.dir}" failonerror="false"/>
+								<mkdir dir="${dist.dir}"/>
+							</target>
+						</configuration>
+					</execution>
 
-                    <!-- Linux launcher -->
-                    <execution>
-                        <id>launcher-sh</id>
-                        <phase>install</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <echo file="${dist.dir}/linux_javaish-${project.version}.sh">
-                                    <![CDATA[
-            #!/usr/bin/env bash
-            java -jar "$(dirname "$0")/javaish-${project.version}.jar" "$@"
-                                    ]]>
-                                </echo>
-                                <chmod file="${dist.dir}/linux_javaish-${project.version}.sh" perm="755" osfamily="unix"/>
-                            </target>
-                        </configuration>
-                    </execution>
+					<!-- Copy shaded JAR -->
+					<execution>
+						<id>copy-jar</id>
+						<phase>install</phase>
+						<goals><goal>run</goal></goals>
+						<configuration>
+							<target>
+								<copy file="${project.build.directory}/${project.build.finalName}.jar"
+									  tofile="${dist.dir}/javaish-${project.version}.jar"
+									  overwrite="true"/>
+							</target>
+						</configuration>
+					</execution>
 
-                    <!-- Windows launcher -->
-                    <execution>
-                        <id>launcher-bat</id>
-                        <phase>install</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <echo file="${dist.dir}/windows_javaish-${project.version}.bat">
-                                    <![CDATA[
-            @echo off
-            set SCRIPT_DIR=%~dp0
-            start "" javaw -jar "%SCRIPT_DIR%javaish-${project.version}.jar" %*
-                                    ]]>
-                                </echo>
-                            </target>
-                        </configuration>
-                    </execution>
-			    </executions>
+					<!-- Copy map.png -->
+					<execution>
+						<id>copy-map</id>
+						<phase>install</phase>
+						<goals><goal>run</goal></goals>
+						<configuration>
+							<target>
+								<copy file="${project.basedir}/map.png"
+									  todir="${dist.dir}"
+									  failonerror="false"/>
+							</target>
+						</configuration>
+					</execution>
+
+					<!-- Linux launcher -->
+					<execution>
+						<id>launcher-sh</id>
+						<phase>install</phase>
+						<goals><goal>run</goal></goals>
+						<configuration>
+							<target>
+								<echo file="${dist.dir}/linux_javaish-${project.version}.sh">
+									<![CDATA[
+#!/usr/bin/env bash
+java -jar "$(dirname "$0")/javaish-${project.version}.jar" "$@"
+									]]>
+								</echo>
+								<chmod file="${dist.dir}/linux_javaish-${project.version}.sh" perm="755" osfamily="unix"/>
+							</target>
+						</configuration>
+					</execution>
+
+					<!-- Windows launcher -->
+					<execution>
+						<id>launcher-bat</id>
+						<phase>install</phase>
+						<goals><goal>run</goal></goals>
+						<configuration>
+							<target>
+								<echo file="${dist.dir}/windows_javaish-${project.version}.bat">
+									<![CDATA[
+@echo off
+set SCRIPT_DIR=%~dp0
+start "" javaw -jar "%SCRIPT_DIR%javaish-${project.version}.jar" %*
+									]]>
+								</echo>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
