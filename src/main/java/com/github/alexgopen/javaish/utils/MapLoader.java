@@ -7,60 +7,75 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 
-import com.github.alexgopen.javaish.application.JavaishV3;
-
 public class MapLoader {
+
+    private static final int EXPECTED_WIDTH = 4096;
+    private static final int EXPECTED_HEIGHT = 2048;
+    private static final String EXTERNAL_MAP = "map.png";
+    private static final String DEFAULT_MAP = "/defaultmap.png";
+
     public static BufferedImage loadMap() throws IOException {
-        boolean error = false;
-        // Try loading map.png from current working directory
-        File mapFile = new File("map.png");
-        BufferedImage tmp = null;
+        BufferedImage map = loadExternalMap(new File(EXTERNAL_MAP));
+        if (map == null) {
+            map = loadDefaultMap();
+        }
+        return map;
+    }
 
-        if (mapFile.exists()) {
-            try {
-                tmp = ImageIO.read(mapFile);
-                if (tmp == null) {
-                    throw new IOException();
-                }
-            }
-            catch (IOException e) {
-                tmp = null;
-                String message = "Failed to read map.png (unsupported/invalid image). Falling back to default map.";
-                System.err.println(message);
-                JOptionPane.showMessageDialog(null, message, "Map load error", JOptionPane.WARNING_MESSAGE);
-                error = true;
-            }
-
-            if (tmp != null) {
-                // validate size
-                if (tmp.getWidth() != 4096 || tmp.getHeight() != 2048) {
-                    String message = String.format(
-                            "map.png has wrong dimensions: %dx%d (expected 4096x2048). Falling back to default map.",
-                            tmp.getWidth(), tmp.getHeight());
-                    System.err.println(message);
-                    JOptionPane.showMessageDialog(null, message, "Map size error", JOptionPane.WARNING_MESSAGE);
-                    tmp = null;
-                    error = true;
-                }
-            }
+    private static BufferedImage loadExternalMap(File file) {
+        if (!file.exists()) {
+            showInfo("Map not found at " + file.getAbsolutePath() + ". Falling back to default map.", "Map not found");
+            return null;
         }
 
-        // Couldn't load a valid external map, load bundled default
-        if (tmp == null) {
-            if (error) {
-                System.err.println("Failed to load map, falling back to default map.");
+        try {
+            BufferedImage img = ImageIO.read(file);
+            if (img == null) {
+                showWarning("Failed to read " + file.getName()
+                        + " (unsupported/invalid image). Falling back to default map.", "Map load error");
+                return null;
             }
-            else {
-                String message = "Map not found at " + mapFile.getAbsolutePath() + ", falling back to default map.";
-                System.err.println(message);
-                JOptionPane.showMessageDialog(null, message, "Map not found", JOptionPane.INFORMATION_MESSAGE);
+
+            if (!validateSize(img)) {
+                showWarning(
+                        String.format("%s has wrong dimensions: %dx%d (expected %dx%d). Falling back to default map.",
+                                file.getName(), img.getWidth(), img.getHeight(), EXPECTED_WIDTH, EXPECTED_HEIGHT),
+                        "Map size error");
+                return null;
             }
-            tmp = ImageIO.read(JavaishV3.class.getResource("/defaultmap.png"));
-            if (tmp == null) {
+
+            return img;
+        }
+        catch (IOException e) {
+            showWarning("Error reading " + file.getName() + ". Falling back to default map.", "Map load error");
+            return null;
+        }
+    }
+
+    private static BufferedImage loadDefaultMap() {
+        try {
+            BufferedImage img = ImageIO.read(MapLoader.class.getResource(DEFAULT_MAP));
+            if (img == null) {
                 throw new IOException("Default map resource missing or unreadable.");
             }
+            return img;
         }
+        catch (IOException e) {
+            throw new RuntimeException("Failed to load default map: " + e.getMessage(), e);
+        }
+    }
 
-        return tmp;
+    private static boolean validateSize(BufferedImage img) {
+        return img.getWidth() == EXPECTED_WIDTH && img.getHeight() == EXPECTED_HEIGHT;
+    }
+
+    private static void showWarning(String message, String title) {
+        System.err.println(message);
+        JOptionPane.showMessageDialog(null, message, title, JOptionPane.WARNING_MESSAGE);
+    }
+
+    private static void showInfo(String message, String title) {
+        System.err.println(message);
+        JOptionPane.showMessageDialog(null, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 }

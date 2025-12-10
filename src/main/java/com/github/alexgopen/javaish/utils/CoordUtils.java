@@ -9,16 +9,19 @@ public class CoordUtils {
 
     public static int wrappedDelta(int a, int b) {
         int dx = a - b;
-        if (dx > 8192)
+        if (dx > 8192) {
             dx -= 16384;
-        if (dx < -8192)
+        }
+        if (dx < -8192) {
             dx += 16384;
+        }
         return dx;
     }
 
     public static double averageSpeedLastN(int n, List<TrackPoint> trackPoints) {
-        if (trackPoints.size() < 2)
+        if (trackPoints.size() < 2) {
             return 0;
+        }
         int start = Math.max(0, trackPoints.size() - n);
         double totalDist = 0;
         long totalTime = 0;
@@ -26,8 +29,9 @@ public class CoordUtils {
             totalDist += trackPoints.get(i).distanceFromPrev;
             totalTime += trackPoints.get(i).deltaTime;
         }
-        if (totalTime == 0)
+        if (totalTime == 0) {
             return 0;
+        }
         double unitsPerSec = totalDist / totalTime * 1000.0; // units per second
 
         return gvonavishKt(unitsPerSec);
@@ -42,8 +46,9 @@ public class CoordUtils {
 
     public static double averageHeadingLastN(int n, List<TrackPoint> trackPoints) {
         int size = trackPoints.size();
-        if (size < 2)
+        if (size < 2) {
             return 0;
+        }
 
         int start = Math.max(0, size - n);
 
@@ -56,8 +61,9 @@ public class CoordUtils {
         double sumYT = 0;
 
         int count = size - start;
-        if (count < 2)
+        if (count < 2) {
             return 0;
+        }
 
         // base point for unwrapping
         Point base = trackPoints.get(start).world;
@@ -81,20 +87,23 @@ public class CoordUtils {
 
         // least-squares slope denominator
         double denom = count * sumT2 - sumT * sumT;
-        if (denom == 0)
+        if (denom == 0) {
             return 0;
+        }
 
         // slopes (Δx/Δt, Δy/Δt)
         double slopeX = (count * sumXT - sumT * sumX) / denom;
         double slopeY = (count * sumYT - sumT * sumY) / denom;
 
-        if (slopeX == 0 && slopeY == 0)
+        if (slopeX == 0 && slopeY == 0) {
             return 0;
+        }
 
         // Use same atan2 ordering as your old method: atan2(x, y)
         double angle = Math.toDegrees(Math.atan2(slopeX, slopeY));
-        if (angle < 0)
+        if (angle < 0) {
             angle += 360;
+        }
 
         return angle;
     }
