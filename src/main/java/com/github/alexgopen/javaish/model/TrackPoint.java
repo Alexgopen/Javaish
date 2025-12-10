@@ -14,11 +14,4 @@ public class TrackPoint {
         this.distanceFromPrev = distanceFromPrev;
         this.deltaTime = deltaTime;
     }
-
-    public double speed() {
-        // units per second
-        if (deltaTime <= 0)
-            return 0;
-        return (distanceFromPrev / deltaTime) * 1000.0;
-    }
 }
