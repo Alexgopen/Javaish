@@ -9,17 +9,17 @@ import com.github.alexgopen.javaish.model.Point;
 
 public class CoordProvider {
     public Point getCoord() throws AWTException, IOException {
-    	BufferedImage coordCrop = WindowCapture.getCoordCrop();
-    	
+        BufferedImage coordCrop = WindowCapture.getCoordCrop();
+
         Point p = CoordExtractor.getPoint(coordCrop, true);
-        
+
         if (p == null) {
-        	throw new CoordNotFoundException();
+            throw new CoordNotFoundException();
         }
         else {
-        	// System.out.println("Latest coord: "+p.toString());
+            // System.out.println("Latest coord: "+p.toString());
         }
-        
+
         return p;
     }
 }

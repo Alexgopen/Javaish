@@ -46,7 +46,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     private Point offsetPoint = new Point(0, 0);
     private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
     private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
-    
+
     // Seville is a common starting point
     private Point initialCenterCoord = new Point(15903, 3271);
 
@@ -55,31 +55,29 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     private boolean rclick = false;
 
     private List<Point> points = new ArrayList<>();
-    
-    private List<TrackPoint> trackPoints = new ArrayList<>();
 
+    private List<TrackPoint> trackPoints = new ArrayList<>();
 
     boolean dragging;
 
     private static JavaishV3 javaish;
 
     private static long lastTime = -1;
-    
+
     private static final long tickRate = 250;
-    
+
     private static long failureDelay = 0;
-    
+
     private boolean firstRender = true;
 
-    public static void failedToFindCoord()
-    {
-    	failureDelay = 250;
+    public static void failedToFindCoord() {
+        failureDelay = 250;
     }
-    
+
     public JavaishV3() {
-    	
+
         try {
-        	loadMap();
+            loadMap();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -93,7 +91,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
         this.addKeyListener(this);
-        
+
         // Auto-center before first render
         this.centerOnInitialCoord();
 
@@ -102,10 +100,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         this.startCoordThread();
     }
-    
-    private void loadMap() throws IOException
-    {
-		boolean error = false;
+
+    private void loadMap() throws IOException {
+        boolean error = false;
         // Try loading map.png from current working directory
         File mapFile = new File("map.png");
         BufferedImage tmp = null;
@@ -114,33 +111,25 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             try {
                 tmp = ImageIO.read(mapFile);
                 if (tmp == null) {
-                	throw new IOException();
+                    throw new IOException();
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 tmp = null;
                 String message = "Failed to read map.png (unsupported/invalid image). Falling back to default map.";
                 System.err.println(message);
-                JOptionPane.showMessageDialog(
-                    null,
-                    message,
-                    "Map load error",
-                    JOptionPane.WARNING_MESSAGE
-                );
+                JOptionPane.showMessageDialog(null, message, "Map load error", JOptionPane.WARNING_MESSAGE);
                 error = true;
             }
 
             if (tmp != null) {
                 // validate size
                 if (tmp.getWidth() != 4096 || tmp.getHeight() != 2048) {
-                	String message = String.format("map.png has wrong dimensions: %dx%d (expected 4096x2048). Falling back to default map.",
+                    String message = String.format(
+                            "map.png has wrong dimensions: %dx%d (expected 4096x2048). Falling back to default map.",
                             tmp.getWidth(), tmp.getHeight());
-                	System.err.println(message);
-                    JOptionPane.showMessageDialog(
-                        null,
-                        message,
-                        "Map size error",
-                        JOptionPane.WARNING_MESSAGE
-                    );
+                    System.err.println(message);
+                    JOptionPane.showMessageDialog(null, message, "Map size error", JOptionPane.WARNING_MESSAGE);
                     tmp = null;
                     error = true;
                 }
@@ -149,43 +138,36 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         // Couldn't load a valid external map, load bundled default
         if (tmp == null) {
-        	if (error)
-        	{
-        		System.err.println("Failed to load map, falling back to default map.");
-        	}
-        	else
-        	{
-        		String message = "Map not found at "+mapFile.getAbsolutePath()+", falling back to default map.";
-        		System.err.println(message);
-        		JOptionPane.showMessageDialog(
-                        null,
-                        message,
-                        "Map not found",
-                        JOptionPane.INFORMATION_MESSAGE
-                    );
-        	}
+            if (error) {
+                System.err.println("Failed to load map, falling back to default map.");
+            }
+            else {
+                String message = "Map not found at " + mapFile.getAbsolutePath() + ", falling back to default map.";
+                System.err.println(message);
+                JOptionPane.showMessageDialog(null, message, "Map not found", JOptionPane.INFORMATION_MESSAGE);
+            }
             tmp = ImageIO.read(JavaishV3.class.getResource("/defaultmap.png"));
             if (tmp == null) {
                 throw new IOException("Default map resource missing or unreadable.");
             }
         }
-        
+
         imageMap = tmp;
         imageDimms.x = imageMap.getWidth();
         imageDimms.y = imageMap.getHeight();
     }
-    
+
     private void startCoordThread() {
-    	Thread coordThread = new Thread(new Runnable() {
+        Thread coordThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
                     try {
                         Thread.sleep(tickRate + JavaishV3.failureDelay);
-                        
+
                         JavaishV3.failureDelay = 0;
                         Point coord = JavaishV3.coordProvider.getCoord();
-                        Point worldCoord = coord; 
+                        Point worldCoord = coord;
                         Point mapCoord = convertWtoM(coord);
                         int dist = 999;
 
@@ -198,19 +180,19 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
                         long currentTime = System.currentTimeMillis();
                         long timeDelta = currentTime - JavaishV3.lastTime;
-                        
+
                         long deltaTimeTp = 0;
                         int distTp = 0;
                         if (!trackPoints.isEmpty()) {
                             TrackPoint last = trackPoints.get(trackPoints.size() - 1);
                             deltaTimeTp = currentTime - last.timestamp;
-                            
+
                             int dx = wrappedDelta(worldCoord.x, last.world.x);
                             int dy = wrappedDelta(worldCoord.y, last.world.y);
 
-                            distTp = (int)Math.sqrt(dx*dx + dy*dy);
+                            distTp = (int) Math.sqrt(dx * dx + dy * dy);
                         }
-                        
+
                         // Estimate speed in units/sec
                         double newSpeed = deltaTimeTp > 0 ? distTp / (deltaTimeTp / 1000.0) : 0;
 
@@ -230,18 +212,19 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             }
                         }
 
-                        // Skip this point if speed is more than 5x the recent average and greater than 2
+                        // Skip this point if speed is more than 5x the recent average and greater than
+                        // 2
                         if (avgSpeed > 0 && (newSpeed > 10 * avgSpeed && newSpeed > 3 || newSpeed >= 50)) {
                             System.err.println("Skipped spike point: newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
                             continue; // skip adding this point
                         }
-                        
+
                         if (timeDelta > 1000 && dist >= 2) {
-                        	TrackPoint tp = new TrackPoint(worldCoord, mapCoord, currentTime, distTp, deltaTimeTp);
+                            TrackPoint tp = new TrackPoint(worldCoord, mapCoord, currentTime, distTp, deltaTimeTp);
                             trackPoints.add(tp);
-                            if (dist != 999)
-                            {
-                            	System.err.println("Dist=" + dist + ", delta=" + timeDelta+", pos="+tp.world.toString()+", newSpeed="+newSpeed+", avgSpeed="+avgSpeed);
+                            if (dist != 999) {
+                                System.err.println("Dist=" + dist + ", delta=" + timeDelta + ", pos="
+                                        + tp.world.toString() + ", newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
                             }
                             JavaishV3.lastTime = currentTime;
                             JavaishV3.javaish.points.add(mapCoord);
@@ -249,13 +232,11 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                         }
 
                     }
-                    catch (CoordNotFoundException cnfe)
-                    {
-                    	if (!WindowCapture.onCooldown())
-                    	{
-                    		System.err.println("Coord not found.");
-                    	}
-                    	WindowCapture.resetPrevFoundCoords();
+                    catch (CoordNotFoundException cnfe) {
+                        if (!WindowCapture.onCooldown()) {
+                            System.err.println("Coord not found.");
+                        }
+                        WindowCapture.resetPrevFoundCoords();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -266,16 +247,19 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         });
         coordThread.start();
     }
-    
+
     private int wrappedDelta(int a, int b) {
         int dx = a - b;
-        if (dx > 8192)  dx -= 16384;
-        if (dx < -8192) dx += 16384;
+        if (dx > 8192)
+            dx -= 16384;
+        if (dx < -8192)
+            dx += 16384;
         return dx;
     }
-    
+
     public double averageSpeedLastN(int n) {
-        if (trackPoints.size() < 2) return 0;
+        if (trackPoints.size() < 2)
+            return 0;
         int start = Math.max(0, trackPoints.size() - n);
         double totalDist = 0;
         long totalTime = 0;
@@ -283,21 +267,23 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             totalDist += trackPoints.get(i).distanceFromPrev;
             totalTime += trackPoints.get(i).deltaTime;
         }
-        if (totalTime == 0) return 0;
-        double unitsPerSec =  totalDist / totalTime * 1000.0; // units per second
-        
+        if (totalTime == 0)
+            return 0;
+        double unitsPerSec = totalDist / totalTime * 1000.0; // units per second
+
         return gvonavishKt(unitsPerSec);
     }
 
-    public static double gvonavishKt(double unitsPerSec)
-	{
-        // real earth circumference in km / ingame earth circumference coordinate units / timescale / kmh per kt
-		double knotsFactor = (2 * 3.141592654 * 6378.137) / 16384.0 / 0.4 / 1.852;
-		return unitsPerSec * knotsFactor;
-	} 
+    public static double gvonavishKt(double unitsPerSec) {
+        // real earth circumference in km / ingame earth circumference coordinate units
+        // / timescale / kmh per kt
+        double knotsFactor = (2 * 3.141592654 * 6378.137) / 16384.0 / 0.4 / 1.852;
+        return unitsPerSec * knotsFactor;
+    }
 
     public double averageHeadingLastNOld(int n) {
-        if (trackPoints.size() < 2) return 0.0;
+        if (trackPoints.size() < 2)
+            return 0.0;
 
         int start = Math.max(0, trackPoints.size() - n);
 
@@ -313,25 +299,29 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             int dy = wrappedDelta(prev.y, curr.y);
 
             // Skip zero-length segments
-            if (dx == 0 && dy == 0) continue;
+            if (dx == 0 && dy == 0)
+                continue;
 
-            double length = Math.sqrt(dx*dx + dy*dy);
+            double length = Math.sqrt(dx * dx + dy * dy);
             sumX += dx / length;
             sumY += dy / length;
         }
 
-        if (sumX == 0 && sumY == 0) return 0.0; // no movement
+        if (sumX == 0 && sumY == 0)
+            return 0.0; // no movement
 
         double angleRad = Math.atan2(sumX, sumY); // dx as x, dy as y
         double angleDeg = Math.toDegrees(angleRad);
-        if (angleDeg < 0) angleDeg += 360;
+        if (angleDeg < 0)
+            angleDeg += 360;
 
         return angleDeg;
     }
-    
+
     public double averageHeadingLastN(int n) {
         int size = trackPoints.size();
-        if (size < 2) return 0;
+        if (size < 2)
+            return 0;
 
         int start = Math.max(0, size - n);
 
@@ -344,7 +334,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         double sumYT = 0;
 
         int count = size - start;
-        if (count < 2) return 0;
+        if (count < 2)
+            return 0;
 
         // base point for unwrapping
         Point base = trackPoints.get(start).world;
@@ -355,30 +346,33 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             Point p = trackPoints.get(i).world;
 
             // unwrap relative to base to avoid wrap discontinuity
-            int ux = wrappedDelta(p.x, base.x);      // p.x - base.x (wrapped)
-            int uy = wrappedDelta(base.y, p.y);      // NOTE: match previous sign convention (prev.y - curr.y)
+            int ux = wrappedDelta(p.x, base.x); // p.x - base.x (wrapped)
+            int uy = wrappedDelta(base.y, p.y); // NOTE: match previous sign convention (prev.y - curr.y)
 
-            sumT  += t;
+            sumT += t;
             sumT2 += t * t;
-            sumX  += ux;
-            sumY  += uy;
+            sumX += ux;
+            sumY += uy;
             sumXT += t * ux;
             sumYT += t * uy;
         }
 
         // least-squares slope denominator
         double denom = count * sumT2 - sumT * sumT;
-        if (denom == 0) return 0;
+        if (denom == 0)
+            return 0;
 
         // slopes (Δx/Δt, Δy/Δt)
         double slopeX = (count * sumXT - sumT * sumX) / denom;
         double slopeY = (count * sumYT - sumT * sumY) / denom;
 
-        if (slopeX == 0 && slopeY == 0) return 0;
+        if (slopeX == 0 && slopeY == 0)
+            return 0;
 
         // Use same atan2 ordering as your old method: atan2(x, y)
         double angle = Math.toDegrees(Math.atan2(slopeX, slopeY));
-        if (angle < 0) angle += 360;
+        if (angle < 0)
+            angle += 360;
 
         return angle;
     }
@@ -398,15 +392,17 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         int topLimit = 0;
         int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
 
-        if (desiredOffsetY > topLimit) desiredOffsetY = topLimit;
-        if (desiredOffsetY < bottomLimit) desiredOffsetY = bottomLimit;
+        if (desiredOffsetY > topLimit)
+            desiredOffsetY = topLimit;
+        if (desiredOffsetY < bottomLimit)
+            desiredOffsetY = bottomLimit;
 
         offsetPoint.x = desiredOffsetX;
         offsetPoint.y = desiredOffsetY;
 
         System.out.println("Initial view centered at " + initialCenterCoord + " with offset " + offsetPoint);
     }
-    
+
     public void updateNeighbors() {
         int left;
         int right;
@@ -439,7 +435,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             x += imageDimms.x;
         }
 
-        
         // renderPoints(g);
         renderPointsList(g);
         renderHint(g);
@@ -448,11 +443,11 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     }
 
     public void renderPointsList(final Graphics g) {
-    	Graphics2D g2 = (Graphics2D)g;
-    	
-    	// Save old hints
+        Graphics2D g2 = (Graphics2D) g;
+
+        // Save old hints
         RenderingHints oldHints = g2.getRenderingHints();
-    	
+
         int prevPointX = Integer.MIN_VALUE;
         int prevPointY = Integer.MIN_VALUE;
 
@@ -492,17 +487,15 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             int transX = curPointX;
             int transY = curPointY;
 
-            
-            
             // Enable full antialiasing
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-            
+
             g2.setColor(new Color(0, 255, 0, 255));
             g2.fillOval(transX - 3, transY - 3, 6, 6);
-            
+
             g2.setRenderingHints(oldHints);
         }
 
@@ -511,15 +504,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             g2.setColor(new Color(255, 0, 0, 255));
             g2.drawLine(prevPointX, prevPointY, curPointX, curPointY);
 
-            
-            
             // Enable full antialiasing
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-            
-            
+
             int xDiff = curPointX - prevPointX;
             int yDiff = curPointY - prevPointY;
 
@@ -595,12 +585,16 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                 double tMax = Double.MAX_VALUE;
 
                 // Intersect with vertical edges
-                if (dx > 0) tMax = (width - 1 - curPointX) / dx;
-                else if (dx < 0) tMax = -curPointX / dx;
+                if (dx > 0)
+                    tMax = (width - 1 - curPointX) / dx;
+                else if (dx < 0)
+                    tMax = -curPointX / dx;
 
                 // Intersect with horizontal edges
-                if (dy > 0) tMax = Math.min(tMax, (height - 1 - curPointY) / dy);
-                else if (dy < 0) tMax = Math.min(tMax, -curPointY / dy);
+                if (dy > 0)
+                    tMax = Math.min(tMax, (height - 1 - curPointY) / dy);
+                else if (dy < 0)
+                    tMax = Math.min(tMax, -curPointY / dy);
 
                 int endXHeading = curPointX + (int) (dx * tMax);
                 int endYHeading = curPointY + (int) (dy * tMax);
@@ -617,10 +611,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         }
 
         Point player = null;
-        
-        if (points.size() > 0)
-        {
-        	player = points.get(points.size() - 1);
+
+        if (points.size() > 0) {
+            player = points.get(points.size() - 1);
         }
 
         if (player != null && isOffscreen(player)) {
@@ -629,12 +622,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-        	
+
             Point edge = getEdgePoint(player);
-            int size = 16;       // triangle size
+            int size = 16; // triangle size
             int tailLength = 26; // length of the arrow tail
-            int tipShift = 8;    // how much to move the triangle tip forward
-            int glowShift = -10;   // shift the glow slightly forward
+            int tipShift = 8; // how much to move the triangle tip forward
+            int glowShift = -10; // shift the glow slightly forward
 
             // Cast to Graphics2D for advanced drawing
             Graphics2D g2d = (Graphics2D) g2;
@@ -645,35 +638,31 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             double angle = Math.atan2(player.y - cy, player.x - cx);
 
             // Shift tip forward
-            int tipX = edge.x + (int)(tipShift * Math.cos(angle));
-            int tipY = edge.y + (int)(tipShift * Math.sin(angle));
+            int tipX = edge.x + (int) (tipShift * Math.cos(angle));
+            int tipY = edge.y + (int) (tipShift * Math.sin(angle));
 
             // Pulsating glow (shifted slightly forward)
             float pulse = 0.75f;
-            int glowSize = (int)(size * 2 + pulse * 10); // glow radius varies
-            int glowX = edge.x + (int)(glowShift * Math.cos(angle));
-            int glowY = edge.y + (int)(glowShift * Math.sin(angle));
-            Color glowColor = new Color(0, 255, 0, (int)(128 * pulse)); // translucent green
+            int glowSize = (int) (size * 2 + pulse * 10); // glow radius varies
+            int glowX = edge.x + (int) (glowShift * Math.cos(angle));
+            int glowY = edge.y + (int) (glowShift * Math.sin(angle));
+            Color glowColor = new Color(0, 255, 0, (int) (128 * pulse)); // translucent green
             g2d.setColor(glowColor);
             g2d.fillOval(glowX - glowSize / 2, glowY - glowSize / 2, glowSize, glowSize);
 
             // Draw the triangle
-            int[] xs = new int[] {
-                tipX, // tip shifted forward
-                edge.x - (int)(size * Math.cos(angle - Math.PI / 6)),
-                edge.x - (int)(size * Math.cos(angle + Math.PI / 6))
-            };
-            int[] ys = new int[] {
-                tipY, // tip shifted forward
-                edge.y - (int)(size * Math.sin(angle - Math.PI / 6)),
-                edge.y - (int)(size * Math.sin(angle + Math.PI / 6))
-            };
+            int[] xs = new int[] { tipX, // tip shifted forward
+                    edge.x - (int) (size * Math.cos(angle - Math.PI / 6)),
+                    edge.x - (int) (size * Math.cos(angle + Math.PI / 6)) };
+            int[] ys = new int[] { tipY, // tip shifted forward
+                    edge.y - (int) (size * Math.sin(angle - Math.PI / 6)),
+                    edge.y - (int) (size * Math.sin(angle + Math.PI / 6)) };
             g2d.setColor(Color.GREEN);
             g2d.fillPolygon(xs, ys, 3);
 
             // Draw arrow tail (unchanged)
-            int tailX = edge.x - (int)(tailLength * Math.cos(angle));
-            int tailY = edge.y - (int)(tailLength * Math.sin(angle));
+            int tailX = edge.x - (int) (tailLength * Math.cos(angle));
+            int tailY = edge.y - (int) (tailLength * Math.sin(angle));
             g2d.setStroke(new java.awt.BasicStroke(3));
             g2d.drawLine(tailX, tailY, edge.x, edge.y);
         }
@@ -687,13 +676,13 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         // Save old hints
         RenderingHints oldHints = g2.getRenderingHints();
-        
+
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-    	
+
         if (mousePoint.x == Integer.MIN_VALUE || mousePoint.y == Integer.MIN_VALUE) {
             return;
         }
@@ -709,7 +698,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         g2.setFont(new Font("Verdana", 1, 12));
 
         g2.drawString(coords, mousePoint.x + 4, mousePoint.y - 4);
-        
+
         // Restore previous hints
         g2.setRenderingHints(oldHints);
     }
@@ -746,7 +735,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         // Save old hints
         RenderingHints oldHints = g2.getRenderingHints();
-        
+
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -766,24 +755,24 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
         // Draw text
         g2.drawString("Left-Click to drag", 22, textInitY + inc * row++);
-        g2.drawString("R to clear plot",   22, textInitY + inc * row++);
-        
+        g2.drawString("R to clear plot", 22, textInitY + inc * row++);
+
         // Restore previous hints
         g2.setRenderingHints(oldHints);
     }
 
     public void renderText(final Graphics g) {
-    	Graphics2D g2 = (Graphics2D) g;
-    	
-    	// Save old hints
+        Graphics2D g2 = (Graphics2D) g;
+
+        // Save old hints
         RenderingHints oldHints = g2.getRenderingHints();
-    	
+
         // Enable full antialiasing
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-    	
+
         Color textColor = Color.WHITE;
 
         g2.setColor(textColor);
@@ -797,10 +786,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         Point p = lastPos == null ? null : lastPos.world;
         int x = 0;
         int y = 0;
-        if (p != null)
-        {
-        	x = p.x;
-        	y = p.y;
+        if (p != null) {
+            x = p.x;
+            y = p.y;
         }
         String worldText = "Coords: " + x + ", " + y;
         g2.drawString(worldText, 15, textInitY + inc * row++);
@@ -808,25 +796,24 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         double heading = averageHeadingLastN(5);
         String rotText = String.format("Rotation: %.0f deg", heading);
         g2.drawString(rotText, 15, textInitY + inc * row++);
-        
+
         // Speed text
         double speed = averageSpeedLastN(5);
         String speedNewText = String.format("Speed: %3.2f kt", speed);
         g2.drawString(speedNewText, 15, textInitY + inc * row++);
-        
+
         double units = 0;
-        for (TrackPoint tp : trackPoints)
-        {
-        	units += tp.distanceFromPrev;
+        for (TrackPoint tp : trackPoints) {
+            units += tp.distanceFromPrev;
         }
-        
-		double gvonavishNmiCircumference = (2 * Math.PI * 6378.137) / 1.852; 
-		double nmiFactor = gvonavishNmiCircumference / 16384.0;
-		
+
+        double gvonavishNmiCircumference = (2 * Math.PI * 6378.137) / 1.852;
+        double nmiFactor = gvonavishNmiCircumference / 16384.0;
+
         double nmi = nmiFactor * units;
         String distanceText = String.format("Distance: %3.2f nmi", nmi);
         g2.drawString(distanceText, 15, textInitY + inc * row++);
-        
+
         // Restore previous hints
         g2.setRenderingHints(oldHints);
     }
@@ -972,7 +959,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void keyPressed(KeyEvent e) {
-    	if (e.getKeyCode() == KeyEvent.VK_R) {
+        if (e.getKeyCode() == KeyEvent.VK_R) {
             // Clear plotted map points
             points.clear();
 
@@ -1014,15 +1001,17 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             int topLimit = 0;
             int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
 
-            if (desiredOffsetY > topLimit) desiredOffsetY = topLimit;
-            if (desiredOffsetY < bottomLimit) desiredOffsetY = bottomLimit;
+            if (desiredOffsetY > topLimit)
+                desiredOffsetY = topLimit;
+            if (desiredOffsetY < bottomLimit)
+                desiredOffsetY = bottomLimit;
 
             offsetPoint.x = desiredOffsetX;
             offsetPoint.y = desiredOffsetY;
 
             firstRender = false;
-            
-            System.out.println("Auto-centered view with offset: "+offsetPoint.toString());
+
+            System.out.println("Auto-centered view with offset: " + offsetPoint.toString());
 
             // Update mCoord after shifting offset
             mCoord.x = (int) xW + offsetPoint.x;
@@ -1042,8 +1031,10 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             int diffx = normXNew - normXLast;
             // wrap horizontally (half-map threshold)
             int half = imageDimms.x / 2;
-            if (diffx >  half) diffx -= imageDimms.x;
-            if (diffx < -half) diffx += imageDimms.x;
+            if (diffx > half)
+                diffx -= imageDimms.x;
+            if (diffx < -half)
+                diffx += imageDimms.x;
             // --- END FIX ---
 
             int diffy = yNew - yLast;
@@ -1059,7 +1050,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     private boolean isOffscreen(Point p) {
         return p.x < 0 || p.x > getWidth() || p.y < 0 || p.y > getHeight();
     }
-    
+
     private Point getEdgePoint(Point p) {
         int cx = getWidth() / 2;
         int cy = getHeight() / 2;

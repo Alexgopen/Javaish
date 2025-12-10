@@ -9,10 +9,10 @@ import com.github.alexgopen.javaish.model.Digit;
 import com.github.alexgopen.javaish.model.Point;
 
 public class CoordExtractor {
-	
-	public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
-	public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
-	
+
+    public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
+    public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
+
     public static Point getPoint(BufferedImage coordCrop, boolean silent) throws IOException {
         Point p = null;
 
@@ -21,49 +21,45 @@ public class CoordExtractor {
 
         String allString = "";
         for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
-            BufferedImage digitPixels = ImageUtils.cropImage(coordCrop, new Rectangle(i * digitWidth, 0, digitWidth, height));
-            //ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
-            
+            BufferedImage digitPixels = ImageUtils.cropImage(coordCrop,
+                    new Rectangle(i * digitWidth, 0, digitWidth, height));
+            // ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
+
             Digit d = new Digit(digitPixels);
-            
-            if (d.isValid())
-            {
-            	allString += d.getString();
+
+            if (d.isValid()) {
+                allString += d.getString();
             }
-            else
-            {
-            	//System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i, d.getLongValue());
+            else {
+                // System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i,
+                // d.getLongValue());
             }
-            
+
         }
-        
-        if (!allString.isEmpty())
-        {
-        	if (!silent)
-        	{
-        		// System.out.println(allString);
-        	}
+
+        if (!allString.isEmpty()) {
+            if (!silent) {
+                // System.out.println(allString);
+            }
 
             int xVal = Integer.parseInt(allString.split(",")[0]);
             int yVal = Integer.parseInt(allString.split(",")[1]);
 
             String digitParsed = xVal + ", " + yVal;
-            
+
             if (!silent) {
-            	// System.out.println("Digitparsed: " + digitParsed);
+                // System.out.println("Digitparsed: " + digitParsed);
             }
 
             Point actualCoords = new Point(xVal, yVal);
             p = actualCoords;
         }
-        else
-        {
-        	if (!silent)
-        	{
-        		System.out.println("No coordinates found.");
-        		WindowCapture.resetPrevFoundCoords();
-        		throw new CoordNotFoundException();
-        	}
+        else {
+            if (!silent) {
+                System.out.println("No coordinates found.");
+                WindowCapture.resetPrevFoundCoords();
+                throw new CoordNotFoundException();
+            }
         }
 
         return p;
