@@ -66,13 +66,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     private static final long tickRate = 250;
 
-    private static long failureDelay = 0;
-
     private boolean firstRender = true;
-
-    public static void failedToFindCoord() {
-        failureDelay = 250;
-    }
 
     public JavaishV3() {
 
@@ -163,9 +157,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             public void run() {
                 while (true) {
                     try {
-                        Thread.sleep(tickRate + JavaishV3.failureDelay);
-
-                        JavaishV3.failureDelay = 0;
+                        Thread.sleep(tickRate);
+                        
                         Point coord = JavaishV3.coordProvider.getCoord();
                         Point worldCoord = coord;
                         Point mapCoord = convertWtoM(coord);
