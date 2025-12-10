@@ -14,12 +14,9 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -29,13 +26,9 @@ import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Point;
 import com.github.alexgopen.javaish.model.TrackPoint;
 import com.github.alexgopen.javaish.utils.CoordProvider;
-import com.github.alexgopen.javaish.utils.ScreenCapture;
+import com.github.alexgopen.javaish.utils.CoordUtils;
+import com.github.alexgopen.javaish.utils.MapLoader;
 
-// Ideas:
-// Mark shipwreck hits (triangulation)
-// Implement zoom
-// How should circumnavigation be handled?  Should I render the points on every map?
-// Should I put coords in another layer and overlay+tile it left and right?
 public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
     private BufferedImage imageMap;
@@ -69,9 +62,13 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     private boolean firstRender = true;
 
     public JavaishV3() {
-
+        JavaishV3.javaish = this;
         try {
-            loadMap();
+            BufferedImage loadedImg = MapLoader.loadMap();
+            
+            imageMap = loadedImg;
+            imageDimms.x = imageMap.getWidth();
+            imageDimms.y = imageMap.getHeight();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -90,65 +87,9 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         this.centerOnInitialCoord();
 
         JavaishV3.coordProvider = new CoordProvider();
-        JavaishV3.javaish = this;
+
 
         this.startCoordThread();
-    }
-
-    private void loadMap() throws IOException {
-        boolean error = false;
-        // Try loading map.png from current working directory
-        File mapFile = new File("map.png");
-        BufferedImage tmp = null;
-
-        if (mapFile.exists()) {
-            try {
-                tmp = ImageIO.read(mapFile);
-                if (tmp == null) {
-                    throw new IOException();
-                }
-            }
-            catch (IOException e) {
-                tmp = null;
-                String message = "Failed to read map.png (unsupported/invalid image). Falling back to default map.";
-                System.err.println(message);
-                JOptionPane.showMessageDialog(null, message, "Map load error", JOptionPane.WARNING_MESSAGE);
-                error = true;
-            }
-
-            if (tmp != null) {
-                // validate size
-                if (tmp.getWidth() != 4096 || tmp.getHeight() != 2048) {
-                    String message = String.format(
-                            "map.png has wrong dimensions: %dx%d (expected 4096x2048). Falling back to default map.",
-                            tmp.getWidth(), tmp.getHeight());
-                    System.err.println(message);
-                    JOptionPane.showMessageDialog(null, message, "Map size error", JOptionPane.WARNING_MESSAGE);
-                    tmp = null;
-                    error = true;
-                }
-            }
-        }
-
-        // Couldn't load a valid external map, load bundled default
-        if (tmp == null) {
-            if (error) {
-                System.err.println("Failed to load map, falling back to default map.");
-            }
-            else {
-                String message = "Map not found at " + mapFile.getAbsolutePath() + ", falling back to default map.";
-                System.err.println(message);
-                JOptionPane.showMessageDialog(null, message, "Map not found", JOptionPane.INFORMATION_MESSAGE);
-            }
-            tmp = ImageIO.read(JavaishV3.class.getResource("/defaultmap.png"));
-            if (tmp == null) {
-                throw new IOException("Default map resource missing or unreadable.");
-            }
-        }
-
-        imageMap = tmp;
-        imageDimms.x = imageMap.getWidth();
-        imageDimms.y = imageMap.getHeight();
     }
 
     private void startCoordThread() {
@@ -180,8 +121,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             TrackPoint last = trackPoints.get(trackPoints.size() - 1);
                             deltaTimeTp = currentTime - last.timestamp;
 
-                            int dx = wrappedDelta(worldCoord.x, last.world.x);
-                            int dy = wrappedDelta(worldCoord.y, last.world.y);
+                            int dx = CoordUtils.wrappedDelta(worldCoord.x, last.world.x);
+                            int dy = CoordUtils.wrappedDelta(worldCoord.y, last.world.y);
 
                             distTp = (int) Math.sqrt(dx * dx + dy * dy);
                         }
@@ -241,134 +182,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         coordThread.start();
     }
 
-    private int wrappedDelta(int a, int b) {
-        int dx = a - b;
-        if (dx > 8192)
-            dx -= 16384;
-        if (dx < -8192)
-            dx += 16384;
-        return dx;
-    }
-
-    public double averageSpeedLastN(int n) {
-        if (trackPoints.size() < 2)
-            return 0;
-        int start = Math.max(0, trackPoints.size() - n);
-        double totalDist = 0;
-        long totalTime = 0;
-        for (int i = start + 1; i < trackPoints.size(); i++) {
-            totalDist += trackPoints.get(i).distanceFromPrev;
-            totalTime += trackPoints.get(i).deltaTime;
-        }
-        if (totalTime == 0)
-            return 0;
-        double unitsPerSec = totalDist / totalTime * 1000.0; // units per second
-
-        return gvonavishKt(unitsPerSec);
-    }
-
-    public static double gvonavishKt(double unitsPerSec) {
-        // real earth circumference in km / ingame earth circumference coordinate units
-        // / timescale / kmh per kt
-        double knotsFactor = (2 * 3.141592654 * 6378.137) / 16384.0 / 0.4 / 1.852;
-        return unitsPerSec * knotsFactor;
-    }
-
-    public double averageHeadingLastNOld(int n) {
-        if (trackPoints.size() < 2)
-            return 0.0;
-
-        int start = Math.max(0, trackPoints.size() - n);
-
-        // Sum of unit vectors
-        double sumX = 0.0;
-        double sumY = 0.0;
-
-        for (int i = start + 1; i < trackPoints.size(); i++) {
-            Point prev = trackPoints.get(i - 1).world;
-            Point curr = trackPoints.get(i).world;
-
-            int dx = wrappedDelta(curr.x, prev.x);
-            int dy = wrappedDelta(prev.y, curr.y);
-
-            // Skip zero-length segments
-            if (dx == 0 && dy == 0)
-                continue;
-
-            double length = Math.sqrt(dx * dx + dy * dy);
-            sumX += dx / length;
-            sumY += dy / length;
-        }
-
-        if (sumX == 0 && sumY == 0)
-            return 0.0; // no movement
-
-        double angleRad = Math.atan2(sumX, sumY); // dx as x, dy as y
-        double angleDeg = Math.toDegrees(angleRad);
-        if (angleDeg < 0)
-            angleDeg += 360;
-
-        return angleDeg;
-    }
-
-    public double averageHeadingLastN(int n) {
-        int size = trackPoints.size();
-        if (size < 2)
-            return 0;
-
-        int start = Math.max(0, size - n);
-
-        // Regression sums
-        double sumT = 0;
-        double sumT2 = 0;
-        double sumX = 0;
-        double sumXT = 0;
-        double sumY = 0;
-        double sumYT = 0;
-
-        int count = size - start;
-        if (count < 2)
-            return 0;
-
-        // base point for unwrapping
-        Point base = trackPoints.get(start).world;
-
-        // t = 0,1,2,... for the subset
-        int t = 0;
-        for (int i = start; i < size; i++, t++) {
-            Point p = trackPoints.get(i).world;
-
-            // unwrap relative to base to avoid wrap discontinuity
-            int ux = wrappedDelta(p.x, base.x); // p.x - base.x (wrapped)
-            int uy = wrappedDelta(base.y, p.y); // NOTE: match previous sign convention (prev.y - curr.y)
-
-            sumT += t;
-            sumT2 += t * t;
-            sumX += ux;
-            sumY += uy;
-            sumXT += t * ux;
-            sumYT += t * uy;
-        }
-
-        // least-squares slope denominator
-        double denom = count * sumT2 - sumT * sumT;
-        if (denom == 0)
-            return 0;
-
-        // slopes (Δx/Δt, Δy/Δt)
-        double slopeX = (count * sumXT - sumT * sumX) / denom;
-        double slopeY = (count * sumYT - sumT * sumY) / denom;
-
-        if (slopeX == 0 && slopeY == 0)
-            return 0;
-
-        // Use same atan2 ordering as your old method: atan2(x, y)
-        double angle = Math.toDegrees(Math.atan2(slopeX, slopeY));
-        if (angle < 0)
-            angle += 360;
-
-        return angle;
-    }
 
     private void centerOnInitialCoord() {
         // convert initialCenterCoord from world to map pixels
@@ -565,7 +378,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             }
 
             // WITH THIS:
-            double smoothedHeadingDeg = averageHeadingLastN(5) - 90;
+            double smoothedHeadingDeg = CoordUtils.averageHeadingLastN(5, trackPoints) - 90;
             double smoothedHeadingRad = Math.toRadians(smoothedHeadingDeg);
 
             double dx = Math.cos(smoothedHeadingRad);
@@ -786,12 +599,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         String worldText = "Coords: " + x + ", " + y;
         g2.drawString(worldText, 15, textInitY + inc * row++);
 
-        double heading = averageHeadingLastN(5);
+        double heading = CoordUtils.averageHeadingLastN(5, trackPoints);
         String rotText = String.format("Rotation: %.0f deg", heading);
         g2.drawString(rotText, 15, textInitY + inc * row++);
 
         // Speed text
-        double speed = averageSpeedLastN(5);
+        double speed = CoordUtils.averageSpeedLastN(5, trackPoints);
         String speedNewText = String.format("Speed: %3.2f kt", speed);
         g2.drawString(speedNewText, 15, textInitY + inc * row++);
 
@@ -876,19 +689,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         offsetPoint.y += dy;
         lastPoint.x = e.getX();
         lastPoint.y = e.getY();
-
-        int bottomLimit = -1 * (imageDimms.y - this.getHeight());
-        if (offsetPoint.y <= bottomLimit) {
-            // offsetY = bottomLimit;
-            // lastY = bottomLimit;
-
-        }
-
-        // 2048 image
-        // 800 preferred
-
-        // y=0
-        // y=-1248
 
         int top = 0;
         int bottom = -1 * (imageDimms.y - this.getHeight());
