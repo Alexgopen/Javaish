@@ -23,33 +23,19 @@ public class CoordExtractor {
         for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
             BufferedImage digitPixels = ImageUtils.cropImage(coordCrop,
                     new Rectangle(i * digitWidth, 0, digitWidth, height));
-            // ImageIO.write(digitPixels, "png", new File("digit"+i+".png"));
 
             Digit d = new Digit(digitPixels);
 
             if (d.isValid()) {
                 allString += d.getString();
             }
-            else {
-                // System.err.printf("Parsed digit at index %d is invalid: %d\r\n", i,
-                // d.getLongValue());
-            }
 
         }
 
         if (!allString.isEmpty()) {
-            if (!silent) {
-                // System.out.println(allString);
-            }
 
             int xVal = Integer.parseInt(allString.split(",")[0]);
             int yVal = Integer.parseInt(allString.split(",")[1]);
-
-            String digitParsed = xVal + ", " + yVal;
-
-            if (!silent) {
-                // System.out.println("Digitparsed: " + digitParsed);
-            }
 
             Point actualCoords = new Point(xVal, yVal);
             p = actualCoords;

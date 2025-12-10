@@ -41,12 +41,9 @@ public class WindowCapture {
         BufferedImage coordCrop = null;
 
         BufferedImage ss = null;
-        // ImageIO.write(ss, "png", new File("uwoss.png"));
 
         Rectangle found = null;
         if (prevFoundCoords == null && WindowCapture.shouldSearchCoords()) {
-            // System.out.println("Searching for coord region.");
-
             ss = WindowCapture.getAllMonitorScreenshot();
 
             WindowCapture.lostCoordsTimestamp = 0;
@@ -55,8 +52,6 @@ public class WindowCapture {
 
             if (found != null) {
                 WindowCapture.prevFoundCoords = found;
-
-                // System.out.printf("Found coord crop at (%d,%d)\n", found.x, found.y);
             }
             else {
                 throw new CoordNotFoundException();
@@ -64,8 +59,6 @@ public class WindowCapture {
         }
         else {
             found = WindowCapture.prevFoundCoords;
-            // System.out.printf("Using previously found coord crop at (%d,%d)\n", found.x,
-            // found.y);
         }
 
         if (found != null) {
@@ -77,18 +70,12 @@ public class WindowCapture {
                     coordCrop = WindowCapture.getScreenshotOfRectangle(found);
                 }
 
-                // optionally write debug
-                // ImageIO.write(coordCrop, "png", new File("found_coord_crop.png"));
-                // Also attempt parsing to show result
                 try {
+                    // Either extracts a valid coordinate or throws exception
                     Point p = CoordExtractor.getPoint(coordCrop, true);
-
-                    // System.out.printf("Parsed coords: %s\n", p);
                 }
                 catch (Exception e) {
                     WindowCapture.resetPrevFoundCoords();
-                    // System.err.println("Parsing failed on found crop (unexpected): " +
-                    // e.getMessage());
                 }
             }
             catch (Exception e) {

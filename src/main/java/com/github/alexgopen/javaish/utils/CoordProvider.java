@@ -11,13 +11,15 @@ public class CoordProvider {
     public Point getCoord() throws AWTException, IOException {
         BufferedImage coordCrop = WindowCapture.getCoordCrop();
 
+        if (coordCrop == null)
+        {
+            throw new CoordNotFoundException("WindowCapture failed to get coordCrop. coordCrop=null");
+        }
+        
         Point p = CoordExtractor.getPoint(coordCrop, true);
 
         if (p == null) {
-            throw new CoordNotFoundException();
-        }
-        else {
-            // System.out.println("Latest coord: "+p.toString());
+            throw new CoordNotFoundException("CoordExtractor failed to get point. p=null");
         }
 
         return p;
