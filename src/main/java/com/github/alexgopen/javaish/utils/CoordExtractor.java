@@ -10,9 +10,6 @@ import com.github.alexgopen.javaish.model.Point;
 
 public class CoordExtractor {
 
-    public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
-    public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
-
     public static Point getPoint(BufferedImage coordCrop) throws IOException {
         Point p = null;
         int digitWidth = Digit.WIDTH;
