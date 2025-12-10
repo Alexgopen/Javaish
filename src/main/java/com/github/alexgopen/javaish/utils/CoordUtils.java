@@ -7,13 +7,19 @@ import com.github.alexgopen.javaish.model.TrackPoint;
 
 public class CoordUtils {
 
+    // Trust me bro 😎👍
+    private static final double KNOTS_FACTOR = 3.3018154771126063;
+    
+    private static final int WRAP_HALF = 8192;
+    private static final int WRAP_FULL = 16384;
+    
     public static int wrappedDelta(int a, int b) {
         int dx = a - b;
-        if (dx > 8192) {
-            dx -= 16384;
+        if (dx > WRAP_HALF) {
+            dx -= WRAP_FULL;
         }
-        if (dx < -8192) {
-            dx += 16384;
+        if (dx < -WRAP_HALF) {
+            dx += WRAP_FULL;
         }
         return dx;
     }
@@ -26,22 +32,20 @@ public class CoordUtils {
         double totalDist = 0;
         long totalTime = 0;
         for (int i = start + 1; i < trackPoints.size(); i++) {
-            totalDist += trackPoints.get(i).distanceFromPrev;
-            totalTime += trackPoints.get(i).deltaTime;
+            TrackPoint tp = trackPoints.get(i);
+            totalDist += tp.distanceFromPrev;
+            totalTime += tp.deltaTime;
         }
         if (totalTime == 0) {
             return 0;
         }
         double unitsPerSec = totalDist / totalTime * 1000.0; // units per second
 
-        return gvonavishKt(unitsPerSec);
+        return unitsPerSecToKt(unitsPerSec);
     }
 
-    public static double gvonavishKt(double unitsPerSec) {
-        // real earth circumference in km / ingame earth circumference coordinate units
-        // / timescale / kmh per kt
-        double knotsFactor = (2 * 3.141592654 * 6378.137) / 16384.0 / 0.4 / 1.852;
-        return unitsPerSec * knotsFactor;
+    public static double unitsPerSecToKt(double unitsPerSec) {
+        return unitsPerSec * KNOTS_FACTOR;
     }
 
     public static double averageHeadingLastN(int n, List<TrackPoint> trackPoints) {
