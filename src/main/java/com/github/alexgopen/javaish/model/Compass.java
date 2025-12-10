@@ -42,7 +42,7 @@ public class Compass {
                 BufferedImage coordCrop = img.getSubimage(p2.x + compassToCoordOffsetX, p2.y + compassToCoordOffsetY,
                         60, 10);
 
-                Point pcoord = CoordExtractor.getPoint(coordCrop, false);
+                Point pcoord = CoordExtractor.getPoint(coordCrop);
 
                 // System.out.println("Is coordinate?: "+pcoord.toString());
 

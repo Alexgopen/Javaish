@@ -13,39 +13,44 @@ public class CoordExtractor {
     public static final int COORD_SECTION_WIDTH = Digit.WIDTH * 10;
     public static final int COORD_SECTION_HEIGHT = Digit.HEIGHT;
 
-    public static Point getPoint(BufferedImage coordCrop, boolean silent) throws IOException {
+    public static Point getPoint(BufferedImage coordCrop) throws IOException {
         Point p = null;
-
         int digitWidth = Digit.WIDTH;
         int height = Digit.HEIGHT;
+        StringBuilder allString = new StringBuilder();
 
-        String allString = "";
-        for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
-            BufferedImage digitPixels = ImageUtils.cropImage(coordCrop,
-                    new Rectangle(i * digitWidth, 0, digitWidth, height));
+        try {
+            for (int i = 0; i < coordCrop.getWidth() / digitWidth; i++) {
+                BufferedImage digitPixels = ImageUtils.cropImage(coordCrop,
+                        new Rectangle(i * digitWidth, 0, digitWidth, height));
 
-            Digit d = new Digit(digitPixels);
+                Digit d = new Digit(digitPixels);
 
-            if (d.isValid()) {
-                allString += d.getString();
+                if (d.isValid()) {
+                    allString.append(d.getString());
+                }
+
             }
 
-        }
+            if (!allString.toString().isEmpty()) {
+                String[] coordParts = allString.toString().split(",");
+                if (coordParts.length != 2) {
+                    throw new CoordNotFoundException("Invalid coordParts length: " + coordParts.length);
+                }
 
-        if (!allString.isEmpty()) {
+                int xVal = Integer.parseInt(coordParts[0]);
+                int yVal = Integer.parseInt(coordParts[1]);
 
-            int xVal = Integer.parseInt(allString.split(",")[0]);
-            int yVal = Integer.parseInt(allString.split(",")[1]);
-
-            Point actualCoords = new Point(xVal, yVal);
-            p = actualCoords;
-        }
-        else {
-            if (!silent) {
-                System.out.println("No coordinates found.");
-                WindowCapture.resetPrevFoundCoords();
-                throw new CoordNotFoundException();
+                p = new Point(xVal, yVal);
             }
+        }
+        catch (Exception e) {
+            throw new CoordNotFoundException(
+                    "CoordExtractor failed to extract coord. Exception=" + e.getClass().getSimpleName());
+        }
+
+        if (p == null) {
+            throw new CoordNotFoundException("CoordExtractor failed to extract coord. p=null");
         }
 
         return p;

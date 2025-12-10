@@ -29,7 +29,7 @@ import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Point;
 import com.github.alexgopen.javaish.model.TrackPoint;
 import com.github.alexgopen.javaish.utils.CoordProvider;
-import com.github.alexgopen.javaish.utils.WindowCapture;
+import com.github.alexgopen.javaish.utils.ScreenCapture;
 
 // Ideas:
 // Mark shipwreck hits (triangulation)
@@ -233,10 +233,10 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
                     }
                     catch (CoordNotFoundException cnfe) {
-                        if (!WindowCapture.onCooldown()) {
+                        if (!CoordProvider.onCooldown()) {
                             System.err.println("Coord not found.");
                         }
-                        WindowCapture.resetPrevFoundCoords();
+                        CoordProvider.resetPrevFoundCoordLoc();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
