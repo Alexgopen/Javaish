@@ -236,7 +236,6 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
             x += mapImageDimms.width;
         }
 
-        // renderPoints(g);
         renderPointsList(g);
         renderHint(g);
         renderText(g);
@@ -310,67 +309,6 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-
-            int xDiff = curPointX - prevPointX;
-            int yDiff = curPointY - prevPointY;
-
-            if (points.size() > 10) {
-                xDiff = curPointX - points.get(points.size() - 10).x;
-                yDiff = curPointY - points.get(points.size() - 10).y;
-            }
-
-            int maxFactorX = 0;
-            int maxFactorY = 0;
-
-            double xMaxDiff = 0;
-            double yMaxDiff = 0;
-
-            // start x
-            if (curPointX <= 0) {
-                if (xDiff <= 0) {
-                    xMaxDiff = Integer.MIN_VALUE - curPointX;
-                }
-                if (xDiff > 0) {
-                    xMaxDiff = curPointX + Integer.MAX_VALUE;
-                }
-            }
-            if (curPointX > 0) {
-                if (xDiff < 0) {
-                    xMaxDiff = curPointX + Integer.MIN_VALUE;
-                }
-                if (xDiff > 0) {
-                    xMaxDiff = Integer.MAX_VALUE - curPointX;
-                }
-            }
-            // end x
-
-            // start y
-            if (curPointY <= 0) {
-                if (yDiff <= 0) {
-                    yMaxDiff = Integer.MIN_VALUE - curPointY;
-                }
-                if (yDiff > 0) {
-                    yMaxDiff = curPointY + Integer.MAX_VALUE;
-                }
-            }
-            if (curPointY > 0) {
-                if (yDiff < 0) {
-                    yMaxDiff = curPointY + Integer.MIN_VALUE;
-                }
-                if (yDiff > 0) {
-                    yMaxDiff = Integer.MAX_VALUE - curPointY;
-                }
-            }
-            // end y
-
-            maxFactorX = (int) Math.floor(Math.abs(xMaxDiff / xDiff));
-            maxFactorY = (int) Math.floor(Math.abs(yMaxDiff / yDiff));
-
-            if (xDiff == 0 || yDiff == 0) {
-                int max = Math.max(maxFactorX, maxFactorY);
-                maxFactorX = max;
-                maxFactorY = max;
-            }
 
             // WITH THIS:
             double smoothedHeadingDeg = CoordMathUtils.averageHeadingLastN(5, trackPoints) - 90;
