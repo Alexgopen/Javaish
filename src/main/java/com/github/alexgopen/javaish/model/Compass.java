@@ -2,7 +2,7 @@ package com.github.alexgopen.javaish.model;
 
 import java.awt.image.BufferedImage;
 
-import com.github.alexgopen.javaish.utils.CompassFinder;
+import com.github.alexgopen.javaish.provider.internal.coords.CompassFinder;
 
 public class Compass {
 
@@ -25,11 +25,11 @@ public class Compass {
 
     private boolean match;
 
-    public Compass(BufferedImage compassCrop) {
+    public Compass(BufferedImage compassCrop, CompassFinder compassFinder) {
         if (compassCrop.getWidth() != WIDTH || compassCrop.getHeight() != HEIGHT) {
             throw new IllegalArgumentException("Bad compass image dims: " + compassCrop.getWidth() + ", " + compassCrop.getHeight());
         }
-        this.match = CompassFinder.isImageCompass(compassCrop);
+        this.match = compassFinder.isImageCompass(compassCrop);
     }
 
     /** Returns true if all mask-covered pixels match the reference colors. */

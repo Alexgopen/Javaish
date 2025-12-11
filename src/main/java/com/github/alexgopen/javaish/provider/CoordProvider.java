@@ -1,4 +1,4 @@
-package com.github.alexgopen.javaish.utils;
+package com.github.alexgopen.javaish.provider;
 
 import java.awt.AWTException;
 import java.awt.image.BufferedImage;
@@ -6,10 +6,16 @@ import java.io.IOException;
 
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.provider.internal.coords.CoordCropFinder;
 
 public class CoordProvider {
     
-    private static CoordCropFinder coordCropFinder = new CoordCropFinder();
+    private final CoordCropFinder coordCropFinder;
+    
+    public CoordProvider() throws AWTException
+    {
+        this.coordCropFinder = new CoordCropFinder();
+    }
     
     public Point getCoord() throws AWTException, IOException {
         BufferedImage coordCrop = coordCropFinder.getCoordCrop();
@@ -19,7 +25,7 @@ public class CoordProvider {
             throw new CoordNotFoundException("CoordCropFinder failed to get coordCrop. coordCrop=null");
         }
         
-        Point p = CoordExtractor.getPoint(coordCrop);
+        Point p = coordCropFinder.extractPointFromCrop(coordCrop);
 
         if (p == null) {
             throw new CoordNotFoundException("CoordExtractor failed to get point. p=null");
@@ -28,12 +34,12 @@ public class CoordProvider {
         return p;
     }
     
-    public static void resetPrevFoundCoordLoc()
+    public void resetPrevFoundCoordLoc()
     {
         coordCropFinder.resetPrevFoundCoordLoc();
     }
     
-    public static boolean onCooldown()
+    public boolean onCooldown()
     {
         return coordCropFinder.onCooldown();
     }

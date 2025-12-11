@@ -1,4 +1,4 @@
-package com.github.alexgopen.javaish.utils;
+package com.github.alexgopen.javaish.provider;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -7,13 +7,18 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 
-public class MapLoader {
+public class MapImageProvider {
 
     private static final int EXPECTED_WIDTH = 4096;
     private static final int EXPECTED_HEIGHT = 2048;
     private static final String EXTERNAL_MAP = "map.png";
     private static final String DEFAULT_MAP = "/defaultmap.png";
 
+    public MapImageProvider()
+    {
+        // default
+    }
+    
     public static BufferedImage loadMap() throws IOException {
         BufferedImage map = loadExternalMap(new File(EXTERNAL_MAP));
         if (map == null) {
@@ -54,7 +59,7 @@ public class MapLoader {
 
     private static BufferedImage loadDefaultMap() {
         try {
-            BufferedImage img = ImageIO.read(MapLoader.class.getResource(DEFAULT_MAP));
+            BufferedImage img = ImageIO.read(MapImageProvider.class.getResource(DEFAULT_MAP));
             if (img == null) {
                 throw new IOException("Default map resource missing or unreadable.");
             }

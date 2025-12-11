@@ -5,7 +5,7 @@ import java.util.List;
 import com.github.alexgopen.javaish.model.Point;
 import com.github.alexgopen.javaish.model.TrackPoint;
 
-public class CoordUtils {
+public class CoordMathUtils {
 
     // Trust me bro 😎👍
     private static final double KNOTS_FACTOR = 3.3018154771126063;

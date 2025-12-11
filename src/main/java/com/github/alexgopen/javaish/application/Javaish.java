@@ -1,5 +1,6 @@
 package com.github.alexgopen.javaish.application;
 
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -25,14 +26,17 @@ import javax.swing.SwingUtilities;
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Point;
 import com.github.alexgopen.javaish.model.TrackPoint;
-import com.github.alexgopen.javaish.utils.CoordProvider;
-import com.github.alexgopen.javaish.utils.CoordUtils;
-import com.github.alexgopen.javaish.utils.MapLoader;
+import com.github.alexgopen.javaish.provider.CoordProvider;
+import com.github.alexgopen.javaish.provider.MapImageProvider;
+import com.github.alexgopen.javaish.utils.CoordMathUtils;
 
-public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+public class Javaish extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
     private static final long serialVersionUID = -1668129614007560894L;
+    
+    private static final long tickRate = 250;
+    
     private BufferedImage imageMap;
-    private static CoordProvider coordProvider;
+    private CoordProvider coordProvider;
 
     private Point imageDimms = new Point(0, 0);
     private Point lastPoint = new Point(0, 0);
@@ -43,8 +47,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
     // Seville is a common starting point
     private Point initialCenterCoord = new Point(15903, 3271);
 
-    private Point neighbors = new Point(-1, 0);
-
     private boolean rclick = false;
 
     private List<Point> points = new ArrayList<>();
@@ -53,18 +55,13 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
 
     boolean dragging;
 
-    private static JavaishV3 javaish;
-
-    private static long lastTime = -1;
-
-    private static final long tickRate = 250;
+    private long lastTime = -1;
 
     private boolean firstRender = true;
 
-    public JavaishV3() {
-        JavaishV3.javaish = this;
+    public Javaish() {
         try {
-            BufferedImage loadedImg = MapLoader.loadMap();
+            BufferedImage loadedImg = MapImageProvider.loadMap();
             
             imageMap = loadedImg;
             imageDimms.x = imageMap.getWidth();
@@ -86,13 +83,22 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         // Auto-center before first render
         this.centerOnInitialCoord();
 
-        JavaishV3.coordProvider = new CoordProvider();
+        try {
+            this.coordProvider = new CoordProvider();
+        }
+        catch (AWTException e) {
+            System.err.println("Failed to instantiate CoordProvider.");
+            e.printStackTrace();
+            System.exit(1);
+        }
 
 
-        this.startCoordThread();
+        this.startCoordThread(this);
     }
 
-    private void startCoordThread() {
+    private void startCoordThread(Javaish javaishInstance) {
+        final Javaish javaish = javaishInstance;
+        
         Thread coordThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -100,20 +106,20 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                     try {
                         Thread.sleep(tickRate);
                         
-                        Point coord = JavaishV3.coordProvider.getCoord();
+                        Point coord = javaish.coordProvider.getCoord();
                         Point worldCoord = coord;
                         Point mapCoord = convertWtoM(coord);
                         int dist = 999;
 
-                        if (JavaishV3.javaish.points.size() > 0) {
-                            Point lastCoord = JavaishV3.javaish.points.get(JavaishV3.javaish.points.size() - 1);
+                        if (javaish.points.size() > 0) {
+                            Point lastCoord = javaish.points.get(javaish.points.size() - 1);
 
                             dist = (int) Math.sqrt(
                                     Math.pow(mapCoord.x - lastCoord.x, 2) + Math.pow(mapCoord.y - lastCoord.y, 2));
                         }
 
                         long currentTime = System.currentTimeMillis();
-                        long timeDelta = currentTime - JavaishV3.lastTime;
+                        long timeDelta = currentTime - javaish.lastTime;
 
                         long deltaTimeTp = 0;
                         int distTp = 0;
@@ -121,8 +127,8 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                             TrackPoint last = trackPoints.get(trackPoints.size() - 1);
                             deltaTimeTp = currentTime - last.timestamp;
 
-                            int dx = CoordUtils.wrappedDelta(worldCoord.x, last.world.x);
-                            int dy = CoordUtils.wrappedDelta(worldCoord.y, last.world.y);
+                            int dx = CoordMathUtils.wrappedDelta(worldCoord.x, last.world.x);
+                            int dy = CoordMathUtils.wrappedDelta(worldCoord.y, last.world.y);
 
                             distTp = (int) Math.sqrt(dx * dx + dy * dy);
                         }
@@ -160,17 +166,17 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
                                 System.err.println("Dist=" + dist + ", delta=" + timeDelta + ", pos="
                                         + tp.world.toString() + ", newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
                             }
-                            JavaishV3.lastTime = currentTime;
-                            JavaishV3.javaish.points.add(mapCoord);
-                            JavaishV3.javaish.repaint();
+                            javaish.lastTime = currentTime;
+                            javaish.points.add(mapCoord);
+                            javaish.repaint();
                         }
 
                     }
                     catch (CoordNotFoundException cnfe) {
-                        if (!CoordProvider.onCooldown()) {
+                        if (!coordProvider.onCooldown()) {
                             System.err.println("Coord not found.");
                         }
-                        CoordProvider.resetPrevFoundCoordLoc();
+                        coordProvider.resetPrevFoundCoordLoc();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -207,20 +213,6 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         offsetPoint.y = desiredOffsetY;
 
         System.out.println("Initial view centered at " + initialCenterCoord + " with offset " + offsetPoint);
-    }
-
-    public void updateNeighbors() {
-        int left;
-        int right;
-
-        int rhOffset = offsetPoint.x * -1 + imageDimms.x / 2;
-
-        left = rhOffset / imageDimms.x - 1;
-        right = left + 1;
-
-        neighbors.x = left;
-        neighbors.y = right;
-
     }
 
     @Override
@@ -378,7 +370,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
             }
 
             // WITH THIS:
-            double smoothedHeadingDeg = CoordUtils.averageHeadingLastN(5, trackPoints) - 90;
+            double smoothedHeadingDeg = CoordMathUtils.averageHeadingLastN(5, trackPoints) - 90;
             double smoothedHeadingRad = Math.toRadians(smoothedHeadingDeg);
 
             double dx = Math.cos(smoothedHeadingRad);
@@ -599,12 +591,12 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         String worldText = "Coords: " + x + ", " + y;
         g2.drawString(worldText, 15, textInitY + inc * row++);
 
-        double heading = CoordUtils.averageHeadingLastN(5, trackPoints);
+        double heading = CoordMathUtils.averageHeadingLastN(5, trackPoints);
         String rotText = String.format("Rotation: %.0f deg", heading);
         g2.drawString(rotText, 15, textInitY + inc * row++);
 
         // Speed text
-        double speed = CoordUtils.averageSpeedLastN(5, trackPoints);
+        double speed = CoordMathUtils.averageSpeedLastN(5, trackPoints);
         String speedNewText = String.format("Speed: %3.2f kt", speed);
         g2.drawString(speedNewText, 15, textInitY + inc * row++);
 
@@ -737,7 +729,7 @@ public class JavaishV3 extends JPanel implements MouseListener, MouseMotionListe
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Javaish");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.getContentPane().add(new JavaishV3());
+            frame.getContentPane().add(new Javaish());
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);

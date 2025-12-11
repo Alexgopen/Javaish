@@ -1,4 +1,4 @@
-package com.github.alexgopen.javaish.utils;
+package com.github.alexgopen.javaish.provider.internal.coords;
 
 import java.awt.AWTException;
 import java.awt.Rectangle;
@@ -8,6 +8,7 @@ import java.io.IOException;
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Digit;
 import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CoordCropFinder {
 
@@ -19,12 +20,26 @@ public class CoordCropFinder {
     private static final int COMPASS_TO_COORD_OFFSET_X = 62;
     private static final int COMPASS_TO_COORD_OFFSET_Y = 6;
     
-    private Rectangle prevFoundCoordLoc = null;
-    private long lostCoordsTimestamp = 0;
     
-    public CoordCropFinder()
+    private Rectangle prevFoundCoordLoc;
+    private long lostCoordsTimestamp;
+    
+    private final CompassFinder compassFinder;
+    private final ScreenCapture screenCapture;
+    private final CoordExtractor coordExtractor;
+
+    
+    public CoordCropFinder() throws AWTException
     {
-        // default
+        this.prevFoundCoordLoc = null;
+        this.lostCoordsTimestamp = 0;
+        this.compassFinder = new CompassFinder();
+        this.screenCapture = new ScreenCapture();
+        this.coordExtractor = new CoordExtractor();
+    }
+    
+    public Point extractPointFromCrop(BufferedImage crop) throws IOException {
+        return coordExtractor.getPoint(crop);
     }
 
     public boolean onCooldown() {
@@ -51,9 +66,9 @@ public class CoordCropFinder {
         BufferedImage screenshot = null;
 
         if (prevFoundCoordLoc == null && shouldSearchCoords()) {
-            screenshot = ScreenCapture.getAllMonitorScreenshot();
+            screenshot = screenCapture.getAllMonitorScreenshot();
             lostCoordsTimestamp = 0;
-            prevFoundCoordLoc = findCoordCropFromCompass(screenshot);
+            prevFoundCoordLoc = this.findCoordCropFromCompass(screenshot);
         }
 
         if (prevFoundCoordLoc == null) {
@@ -62,10 +77,10 @@ public class CoordCropFinder {
 
         BufferedImage coordCrop = screenshot != null
                 ? ImageUtils.cropImage(screenshot, prevFoundCoordLoc)
-                : ScreenCapture.getScreenshotOfRectangle(prevFoundCoordLoc);
+                : screenCapture.getScreenshotOfRectangle(prevFoundCoordLoc);
 
         try {
-            CoordExtractor.getPoint(coordCrop);
+            coordExtractor.getPoint(coordCrop);
         } catch (CoordNotFoundException e) {
             resetPrevFoundCoordLoc();
             coordCrop = null;
@@ -74,15 +89,15 @@ public class CoordCropFinder {
         return coordCrop;
     }
 
-    public static Rectangle findCoordCropFromCompass(BufferedImage screenshot) {
+    private Rectangle findCoordCropFromCompass(BufferedImage screenshot) {
         try {
-            Point compassLoc = CompassFinder.findCompassInImageBackwards(screenshot);
+            Point compassLoc = compassFinder.findCompassInImageBackwards(screenshot);
 
             if (compassLoc != null) {
                 BufferedImage coordCrop = screenshot.getSubimage(compassLoc.x + COMPASS_TO_COORD_OFFSET_X, compassLoc.y + COMPASS_TO_COORD_OFFSET_Y,
                         COORD_CROP_WIDTH, COORD_CROP_HEIGHT);
 
-                Point pcoord = CoordExtractor.getPoint(coordCrop);
+                Point pcoord = coordExtractor.getPoint(coordCrop);
 
                 if (pcoord != null) {
                     return new Rectangle(compassLoc.x + COMPASS_TO_COORD_OFFSET_X, compassLoc.y + COMPASS_TO_COORD_OFFSET_Y, COORD_CROP_WIDTH, COORD_CROP_HEIGHT);

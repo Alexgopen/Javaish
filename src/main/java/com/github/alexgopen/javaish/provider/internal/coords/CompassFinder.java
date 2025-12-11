@@ -1,15 +1,21 @@
-package com.github.alexgopen.javaish.utils;
+package com.github.alexgopen.javaish.provider.internal.coords;
 
 import java.awt.image.BufferedImage;
 
 import com.github.alexgopen.javaish.model.Compass;
 import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CompassFinder {
 
     private static final int COLOR_TOLERANCE = 20;
 
-    public static Point findCompassInImageBackwards(BufferedImage screenshot) {
+    public CompassFinder()
+    {
+        
+    }
+    
+    public Point findCompassInImageBackwards(BufferedImage screenshot) {
         final int firstPixel = Compass.COLOR_VALUES[0] & 0xFFFFFF;
 
         final int searchHeight = screenshot.getHeight() - Compass.HEIGHT;
@@ -32,7 +38,7 @@ public class CompassFinder {
         return null; // not found
     }
 
-    public static boolean isImageCompass(BufferedImage compassCrop) {
+    public boolean isImageCompass(BufferedImage compassCrop) {
         int colorIndex = 0;
 
         if (compassCrop.getWidth() != Compass.WIDTH || compassCrop.getHeight() != Compass.HEIGHT) {

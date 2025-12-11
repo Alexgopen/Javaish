@@ -1,4 +1,4 @@
-package com.github.alexgopen.javaish.utils;
+package com.github.alexgopen.javaish.provider.internal.coords;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
@@ -7,10 +7,16 @@ import java.io.IOException;
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Digit;
 import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CoordExtractor {
+    
+    public CoordExtractor()
+    {
+        // default
+    }
 
-    public static Point getPoint(BufferedImage coordCrop) throws IOException {
+    public Point getPoint(BufferedImage coordCrop) throws IOException {
         Point p = null;
         int digitWidth = Digit.WIDTH;
         int height = Digit.HEIGHT;
