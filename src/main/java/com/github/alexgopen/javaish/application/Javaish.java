@@ -36,6 +36,7 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
     private static final long tickRate = 250;
     
     private BufferedImage imageMap;
+    private BufferedImage trackLayer;
     private CoordProvider coordProvider;
 
     private Point imageDimms = new Point(0, 0);
@@ -48,8 +49,6 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
     private Point initialCenterCoord = new Point(15903, 3271);
 
     private boolean rclick = false;
-
-    private List<Point> points = new ArrayList<>();
 
     private List<TrackPoint> trackPoints = new ArrayList<>();
 
@@ -79,6 +78,9 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         this.addMouseListener(this);
         this.addMouseMotionListener(this);
         this.addKeyListener(this);
+        
+        this.trackLayer = new BufferedImage(imageDimms.x, imageDimms.y, BufferedImage.TYPE_INT_ARGB);
+
 
         // Auto-center before first render
         this.centerOnInitialCoord();
@@ -96,9 +98,7 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         this.startCoordThread(this);
     }
 
-    private void startCoordThread(Javaish javaishInstance) {
-        final Javaish javaish = javaishInstance;
-        
+    private void startCoordThread(Javaish javaishInstance) {        
         Thread coordThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -106,23 +106,14 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
                     try {
                         Thread.sleep(tickRate);
                         
-                        Point coord = javaish.coordProvider.getCoord();
+                        Point coord = coordProvider.getCoord();
                         Point worldCoord = coord;
-                        Point mapCoord = convertWtoM(coord);
-                        int dist = 999;
-
-                        if (javaish.points.size() > 0) {
-                            Point lastCoord = javaish.points.get(javaish.points.size() - 1);
-
-                            dist = (int) Math.sqrt(
-                                    Math.pow(mapCoord.x - lastCoord.x, 2) + Math.pow(mapCoord.y - lastCoord.y, 2));
-                        }
+                        int distTp = 999;
 
                         long currentTime = System.currentTimeMillis();
-                        long timeDelta = currentTime - javaish.lastTime;
+                        long timeDelta = currentTime - lastTime;
 
                         long deltaTimeTp = 0;
-                        int distTp = 0;
                         if (!trackPoints.isEmpty()) {
                             TrackPoint last = trackPoints.get(trackPoints.size() - 1);
                             deltaTimeTp = currentTime - last.timestamp;
@@ -159,16 +150,16 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
                             continue; // skip adding this point
                         }
 
-                        if (timeDelta > 1000 && dist >= 2) {
-                            TrackPoint tp = new TrackPoint(worldCoord, mapCoord, currentTime, distTp, deltaTimeTp);
+                        if (timeDelta > 1000 && distTp >= 1) {
+                            TrackPoint tp = new TrackPoint(worldCoord, currentTime, distTp, deltaTimeTp, new Point(offsetPoint.x, offsetPoint.y));
                             trackPoints.add(tp);
-                            if (dist != 999) {
-                                System.err.println("Dist=" + dist + ", delta=" + timeDelta + ", pos="
-                                        + tp.world.toString() + ", newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed);
+                            if (distTp != 999) {
+                                System.err.println("Dist=" + distTp + ", delta=" + timeDelta + ", pos="
+                                        + tp.world.toString() + ", newSpeed=" + newSpeed + ", avgSpeed=" + avgSpeed+", tpoffsetx="+tp.offset.x+", tpoffsety="+tp.offset.y);
                             }
-                            javaish.lastTime = currentTime;
-                            javaish.points.add(mapCoord);
-                            javaish.repaint();
+                            lastTime = currentTime;
+                            updateTrackLayer();
+                            repaint();
                         }
 
                     }
@@ -234,10 +225,179 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         }
 
         // renderPoints(g);
-        renderPointsList(g);
+        // renderPointsList(g);
+        renderTrack((Graphics2D) g);
         renderHint(g);
         renderText(g);
         renderHover(g);
+        renderPlayerArrow(g); // we’ll refactor arrow into a separate method
+        renderPlayerDot(g);
+    }
+    
+    private void drawWrappedLine(Graphics2D g2, Point p0, Point p1) {
+        final int MAX_WORLD = 16384;
+
+        int dx = p1.x - p0.x;
+
+        // Check for crossing left-to-right
+        if (dx > MAX_WORLD / 2) {
+            // Crossing from near 0 to left
+            int boundaryX = 0;
+            double ratio = (double) (boundaryX - p0.x) / dx;
+            int yBoundary = p0.y + (int) ((p1.y - p0.y) * ratio);
+            g2.drawLine(p0.x, p0.y, boundaryX, yBoundary);
+            return;
+        }
+
+        // Check for crossing right-to-left
+        if (dx < -MAX_WORLD / 2) {
+            // Crossing from near right to 0
+            int boundaryX = MAX_WORLD;
+            double ratio = (double) (boundaryX - p0.x) / dx;
+            int yBoundary = p0.y + (int) ((p1.y - p0.y) * ratio);
+            g2.drawLine(p0.x, p0.y, boundaryX, yBoundary);
+            return;
+        }
+
+        // Normal line
+        g2.drawLine(p0.x, p0.y, p1.x, p1.y);
+    }
+
+
+    
+    private void renderTrack(Graphics2D g2) {
+        if (trackPoints.isEmpty()) return;
+
+        int[] offsetsX = {-imageDimms.x, 0, imageDimms.x}; // tile horizontally
+        int[] offsetsY = {0}; // optionally add vertical tiling if needed
+
+        g2.setColor(new Color(255, 0, 0, 255));
+
+        for (TrackPoint tp : trackPoints) {
+            Point p = purelyConvertWtoM(tp);
+
+            for (int ox : offsetsX) {
+                for (int oy : offsetsY) {
+                    int px = p.x + ox;
+                    int py = p.y + oy;
+                    g2.fillOval(px - 1, py - 1, 2, 2);
+                }
+            }
+        }
+
+        // Draw connecting lines
+        for (int i = 1; i < trackPoints.size(); i++) {
+            Point prev = purelyConvertWtoM(trackPoints.get(i - 1));
+            Point curr = purelyConvertWtoM(trackPoints.get(i));
+            for (int ox : offsetsX) {
+                int px0 = prev.x + ox;
+                int px1 = curr.x + ox;
+
+                drawWrappedLine(g2, new Point(px0, prev.y), new Point(px1, curr.y));
+            }
+        }
+    }
+
+    
+    private void renderPlayerArrow(Graphics g) {
+        if (trackPoints.isEmpty()) return;
+
+        TrackPoint lastTP = trackPoints.get(trackPoints.size() - 1);
+        Point player = purelyConvertWtoM(lastTP);
+
+        if (!isOffscreen(player)) return;
+
+        Graphics2D g2 = (Graphics2D) g;
+        // Enable antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        Point edge = getEdgePoint(player);
+
+        int size = 16;        // triangle size
+        int tailLength = 26;  // arrow tail
+        int tipShift = 8;     // shift forward
+        int glowShift = -10;  // glow shift
+
+        int cx = getWidth() / 2;
+        int cy = getHeight() / 2;
+        double angle = Math.atan2(player.y - cy, player.x - cx);
+
+        // Tip shifted forward
+        int tipX = edge.x + (int) (tipShift * Math.cos(angle));
+        int tipY = edge.y + (int) (tipShift * Math.sin(angle));
+
+        // Glow
+        float pulse = 0.75f;
+        int glowSize = (int) (size * 2 + pulse * 10);
+        int glowX = edge.x + (int) (glowShift * Math.cos(angle));
+        int glowY = edge.y + (int) (glowShift * Math.sin(angle));
+        g2.setColor(new Color(0, 255, 0, (int) (128 * pulse)));
+        g2.fillOval(glowX - glowSize / 2, glowY - glowSize / 2, glowSize, glowSize);
+
+        // Triangle
+        int[] xs = {tipX, edge.x - (int)(size*Math.cos(angle-Math.PI/6)), edge.x - (int)(size*Math.cos(angle+Math.PI/6))};
+        int[] ys = {tipY, edge.y - (int)(size*Math.sin(angle-Math.PI/6)), edge.y - (int)(size*Math.sin(angle+Math.PI/6))};
+        g2.setColor(Color.GREEN);
+        g2.fillPolygon(xs, ys, 3);
+
+        // Tail
+        int tailX = edge.x - (int)(tailLength * Math.cos(angle));
+        int tailY = edge.y - (int)(tailLength * Math.sin(angle));
+        g2.setStroke(new java.awt.BasicStroke(3));
+        g2.drawLine(tailX, tailY, edge.x, edge.y);
+    }
+
+    
+    private void updateTrackLayer() {
+        if (trackLayer == null) return;
+
+        Graphics2D g2 = trackLayer.createGraphics();
+
+        // Clear previous content
+        g2.setComposite(java.awt.AlphaComposite.Clear);
+        g2.fillRect(0, 0, trackLayer.getWidth(), trackLayer.getHeight());
+        g2.setComposite(java.awt.AlphaComposite.SrcOver);
+
+        // Antialiasing for smooth lines
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Draw all track points
+        for (int i = 0; i < trackPoints.size(); i++) {
+            TrackPoint tp = trackPoints.get(i);
+            Point p = purelyConvertWtoM(tp);
+
+            // Draw point
+            g2.setColor(new Color(255, 0, 0, 255));
+            g2.fillOval(p.x - 1, p.y - 1, 2, 2);
+
+            // Draw line from previous
+            if (i > 0) {
+                TrackPoint prev = trackPoints.get(i - 1);
+                Point prevP = purelyConvertWtoM(prev);
+                g2.drawLine(prevP.x, prevP.y, p.x, p.y);
+            }
+        }
+
+        g2.dispose();
+    }
+    
+    private void renderPlayerDot(Graphics g) {
+        if (trackPoints.isEmpty()) return;
+
+        TrackPoint lastTP = trackPoints.get(trackPoints.size() - 1);
+        Point player = purelyConvertWtoM(lastTP);
+
+        Graphics2D g2 = (Graphics2D) g;
+
+        // Enable antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Draw green dot at player location
+        g2.setColor(new Color(0, 255, 0, 255));
+        g2.fillOval(player.x - 3, player.y - 3, 6, 6);
     }
 
     public void renderPointsList(final Graphics g) {
@@ -252,22 +412,30 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         int curPointX = Integer.MIN_VALUE;
         int curPointY = Integer.MIN_VALUE;
 
-        for (int i = 0; i < points.size(); i++) {
-            Point p = points.get(i);
+        for (int i = 0; i < trackPoints.size(); i++) {
+            TrackPoint tp = trackPoints.get(i);
+            Point mapCoord = convertWtoM(tp);
+            
+            Point p = mapCoord;
 
-            if (i == points.size() - 2) {
+            if (i == trackPoints.size() - 2) {
                 prevPointX = p.x;
                 prevPointY = p.y;
             }
 
-            if (i == points.size() - 1) {
+            if (i == trackPoints.size() - 1) {
                 curPointX = p.x;
                 curPointY = p.y;
             }
 
             if (i > 0) {
                 g2.setColor(new Color(255, 0, 0, 255));
-                g2.drawLine(points.get(i - 1).x, points.get(i - 1).y, points.get(i).x, points.get(i).y);
+                
+                TrackPoint tpPrev = trackPoints.get(i - 1);
+                Point prev = convertWtoM(tpPrev);
+                TrackPoint tpCurr = trackPoints.get(i);
+                Point curr =  convertWtoM(tpCurr);
+                g2.drawLine(prev.x, prev.y, curr.x, curr.y);
             }
 
             g2.setColor(new Color(255, 0, 0, 255));
@@ -308,69 +476,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
-            int xDiff = curPointX - prevPointX;
-            int yDiff = curPointY - prevPointY;
-
-            if (points.size() > 10) {
-                xDiff = curPointX - points.get(points.size() - 10).x;
-                yDiff = curPointY - points.get(points.size() - 10).y;
-            }
-
-            int maxFactorX = 0;
-            int maxFactorY = 0;
-
-            double xMaxDiff = 0;
-            double yMaxDiff = 0;
-
-            // start x
-            if (curPointX <= 0) {
-                if (xDiff <= 0) {
-                    xMaxDiff = Integer.MIN_VALUE - curPointX;
-                }
-                if (xDiff > 0) {
-                    xMaxDiff = curPointX + Integer.MAX_VALUE;
-                }
-            }
-            if (curPointX > 0) {
-                if (xDiff < 0) {
-                    xMaxDiff = curPointX + Integer.MIN_VALUE;
-                }
-                if (xDiff > 0) {
-                    xMaxDiff = Integer.MAX_VALUE - curPointX;
-                }
-            }
-            // end x
-
-            // start y
-            if (curPointY <= 0) {
-                if (yDiff <= 0) {
-                    yMaxDiff = Integer.MIN_VALUE - curPointY;
-                }
-                if (yDiff > 0) {
-                    yMaxDiff = curPointY + Integer.MAX_VALUE;
-                }
-            }
-            if (curPointY > 0) {
-                if (yDiff < 0) {
-                    yMaxDiff = curPointY + Integer.MIN_VALUE;
-                }
-                if (yDiff > 0) {
-                    yMaxDiff = Integer.MAX_VALUE - curPointY;
-                }
-            }
-            // end y
-
-            maxFactorX = (int) Math.floor(Math.abs(xMaxDiff / xDiff));
-            maxFactorY = (int) Math.floor(Math.abs(yMaxDiff / yDiff));
-
-            if (xDiff == 0 || yDiff == 0) {
-                int max = Math.max(maxFactorX, maxFactorY);
-                maxFactorX = max;
-                maxFactorY = max;
-            }
-
             // WITH THIS:
-            double smoothedHeadingDeg = CoordMathUtils.averageHeadingLastN(5, trackPoints) - 90;
+            double smoothedHeadingDeg = CoordMathUtils.averageHeadingLastN(10, trackPoints) - 90;
             double smoothedHeadingRad = Math.toRadians(smoothedHeadingDeg);
 
             double dx = Math.cos(smoothedHeadingRad);
@@ -410,8 +517,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
         Point player = null;
 
-        if (points.size() > 0) {
-            player = points.get(points.size() - 1);
+        if (trackPoints.size() > 0) {
+            player = convertWtoM(trackPoints.get(trackPoints.size() - 1));
         }
 
         if (player != null && isOffscreen(player)) {
@@ -591,7 +698,7 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         String worldText = "Coords: " + x + ", " + y;
         g2.drawString(worldText, 15, textInitY + inc * row++);
 
-        double heading = CoordMathUtils.averageHeadingLastN(5, trackPoints);
+        double heading = CoordMathUtils.averageHeadingLastN(10, trackPoints);
         String rotText = String.format("Rotation: %.0f deg", heading);
         g2.drawString(rotText, 15, textInitY + inc * row++);
 
@@ -702,9 +809,9 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         int dox = offsetPoint.x - prevOffsetX;
         int doy = offsetPoint.y - prevOffsetY;
 
-        for (Point p : points) {
-            p.x += dox;
-            p.y += doy;
+        for (TrackPoint p : trackPoints) {
+            p.offset.x += dox;
+            p.offset.y += doy;
         }
 
         repaint();
@@ -745,9 +852,6 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
     @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_R) {
-            // Clear plotted map points
-            points.clear();
-
             // Clear tracking points (coordinates, distance, speed, rotation)
             trackPoints.clear();
 
@@ -758,9 +862,10 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         }
     }
 
-    private Point convertWtoM(Point wCoord) {
+    private Point purelyConvertWtoM(TrackPoint tp)
+    {
+        Point wCoord = tp.world;
         Point mCoord = new Point(0, 0);
-
         // Convert world coordinates to map pixels
         double xW = wCoord.x;
         double yW = wCoord.y;
@@ -771,66 +876,81 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         xW /= 1000.0;
         xW *= 250.0;
 
-        mCoord.y = (int) yW + offsetPoint.y;
-        mCoord.x = (int) xW + offsetPoint.x;
+        mCoord.y = (int) yW + tp.offset.y;
+        mCoord.x = (int) xW + tp.offset.x;
+        
+        return mCoord;
+    }
+    
+    private Point convertWtoM(TrackPoint tp) {
+        Point wCoord = tp.world;
+        Point mCoord = new Point(0, 0);
+
+        // Convert world coords to map pixels
+        double xW = wCoord.x / 1000.0 * 250.0;
+        double yW = wCoord.y / 1000.0 * 250.0;
+
+        mCoord.y = (int) yW + tp.offset.y;
+        mCoord.x = (int) xW + tp.offset.x;
 
         if (firstRender) {
-            // Compute offset to center the first point
+            // center first point
             int centerX = getWidth() / 2;
             int centerY = getHeight() / 2;
 
             int desiredOffsetX = centerX - (int) xW;
             int desiredOffsetY = centerY - (int) yW;
 
-            // Clamp vertical offset to map limits
             int topLimit = 0;
             int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
 
-            if (desiredOffsetY > topLimit)
-                desiredOffsetY = topLimit;
-            if (desiredOffsetY < bottomLimit)
-                desiredOffsetY = bottomLimit;
+            if (desiredOffsetY > topLimit) desiredOffsetY = topLimit;
+            if (desiredOffsetY < bottomLimit) desiredOffsetY = bottomLimit;
+
+            tp.offset.x = desiredOffsetX;
+            tp.offset.y = desiredOffsetY;
 
             offsetPoint.x = desiredOffsetX;
             offsetPoint.y = desiredOffsetY;
 
             firstRender = false;
 
-            System.out.println("Auto-centered view with offset: " + offsetPoint.toString());
-
-            // Update mCoord after shifting offset
+            // Update mCoord
             mCoord.x = (int) xW + offsetPoint.x;
             mCoord.y = (int) yW + offsetPoint.y;
+
+            return mCoord;
         }
-        else if (!points.isEmpty()) {
-            // Normal adjustment relative to last point
-            Point lastPoint = points.get(points.size() - 1);
 
-            int normXNew = mCoord.x % imageDimms.x;
-            int normXLast = lastPoint.x % imageDimms.x;
+        if (!trackPoints.isEmpty()) {
+            TrackPoint lastTP = trackPoints.get(trackPoints.size() - 1);
+            Point lastPoint = purelyConvertWtoM(lastTP);
 
-            int yNew = mCoord.y;
-            int yLast = lastPoint.y;
+            int normXNew = ((mCoord.x % imageDimms.x) + imageDimms.x) % imageDimms.x;
+            int normXLast = ((lastPoint.x % imageDimms.x) + imageDimms.x) % imageDimms.x;
 
-            // --- FIX: compute wrapped X difference ---
-            int diffx = normXNew - normXLast;
-            // wrap horizontally (half-map threshold)
+            int diffX = normXNew - normXLast;
             int half = imageDimms.x / 2;
-            if (diffx > half)
-                diffx -= imageDimms.x;
-            if (diffx < -half)
-                diffx += imageDimms.x;
-            // --- END FIX ---
 
-            int diffy = yNew - yLast;
+            // Detect boundary crossing and adjust offset
+            if (diffX > half) {
+                diffX -= imageDimms.x;
+                tp.offset.x += imageDimms.x;  // add full map width to offset
+            } else if (diffX < -half) {
+                diffX += imageDimms.x;
+                tp.offset.x -= imageDimms.x;  // subtract full map width
+            }
 
-            // Apply corrected continuous movement
-            mCoord.x = lastPoint.x + diffx;
-            mCoord.y = lastPoint.y + diffy;
+            int diffY = mCoord.y - lastPoint.y;
+
+            // Apply corrected movement
+            mCoord.x = lastPoint.x + diffX;
+            mCoord.y = lastPoint.y + diffY;
         }
 
         return mCoord;
     }
+
 
     private boolean isOffscreen(Point p) {
         return p.x < 0 || p.x > getWidth() || p.y < 0 || p.y > getHeight();
