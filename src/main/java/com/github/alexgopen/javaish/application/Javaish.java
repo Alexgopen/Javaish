@@ -35,37 +35,40 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
     
     private static final long tickRate = 250;
     
-    private BufferedImage imageMap;
+    private BufferedImage mapImage;
+    private Dimension mapImageDimms = new Dimension(0,0);
+    
     private CoordProvider coordProvider;
 
-    private Point imageDimms = new Point(0, 0);
-    private Point lastPoint = new Point(0, 0);
-    private Point offsetPoint = new Point(0, 0);
-    private Point mousePoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
-    private Point worldPoint = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    // Mouse stuff
+    private boolean dragging;
+    private boolean rclick = false;
+    private Point lastClickPos = new Point(0, 0);
+    private Point mousePos = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    private Point hoveredCoord = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    
+    // View offset
+    private Point viewOffsetPixels = new Point(0, 0);
 
+    // Points to draw (pixels)
+    private List<Point> points = new ArrayList<>();
+    // Points for tracking (we should enhance the implementation to depend only on these)
+    private List<TrackPoint> trackPoints = new ArrayList<>();
+    
     // Seville is a common starting point
     private Point initialCenterCoord = new Point(15903, 3271);
 
-    private boolean rclick = false;
-
-    private List<Point> points = new ArrayList<>();
-
-    private List<TrackPoint> trackPoints = new ArrayList<>();
-
-    boolean dragging;
-
+    // Loop management
     private long lastTime = -1;
-
     private boolean firstRender = true;
 
     public Javaish() {
         try {
             BufferedImage loadedImg = MapImageProvider.loadMap();
             
-            imageMap = loadedImg;
-            imageDimms.x = imageMap.getWidth();
-            imageDimms.y = imageMap.getHeight();
+            mapImage = loadedImg;
+            mapImageDimms.width = mapImage.getWidth();
+            mapImageDimms.height = mapImage.getHeight();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -202,35 +205,35 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
         // clamp vertical offset
         int topLimit = 0;
-        int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
+        int bottomLimit = Math.min(0, getHeight() - mapImageDimms.height);
 
         if (desiredOffsetY > topLimit)
             desiredOffsetY = topLimit;
         if (desiredOffsetY < bottomLimit)
             desiredOffsetY = bottomLimit;
 
-        offsetPoint.x = desiredOffsetX;
-        offsetPoint.y = desiredOffsetY;
+        viewOffsetPixels.x = desiredOffsetX;
+        viewOffsetPixels.y = desiredOffsetY;
 
-        System.out.println("Initial view centered at " + initialCenterCoord + " with offset " + offsetPoint);
+        System.out.println("Initial view centered at " + initialCenterCoord + " with offset " + viewOffsetPixels);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        int x = offsetPoint.x % imageDimms.x;
+        int x = viewOffsetPixels.x % mapImageDimms.width;
         if (x > 0) {
-            x -= imageDimms.x;
+            x -= mapImageDimms.width;
         }
 
-        int y = offsetPoint.y;
+        int y = viewOffsetPixels.y;
 
         while (x < getWidth()) {
-            g.drawImage(imageMap, (x - imageDimms.x), y, null);
-            g.drawImage(imageMap, x, y, null);
-            g.drawImage(imageMap, (x + imageDimms.x), y, null);
-            x += imageDimms.x;
+            g.drawImage(mapImage, (x - mapImageDimms.width), y, null);
+            g.drawImage(mapImage, x, y, null);
+            g.drawImage(mapImage, (x + mapImageDimms.width), y, null);
+            x += mapImageDimms.width;
         }
 
         // renderPoints(g);
@@ -481,21 +484,21 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
-        if (mousePoint.x == Integer.MIN_VALUE || mousePoint.y == Integer.MIN_VALUE) {
+        if (mousePos.x == Integer.MIN_VALUE || mousePos.y == Integer.MIN_VALUE) {
             return;
         }
 
         recalcWorldCoords();
-        String coords = String.format("%d, %d", worldPoint.x, worldPoint.y);
+        String coords = String.format("%d, %d", hoveredCoord.x, hoveredCoord.y);
 
         g2.setColor(new Color(0, 0, 0, 70));
-        g2.fillRect(mousePoint.x, mousePoint.y - 16, coords.length() * 7, 16);
+        g2.fillRect(mousePos.x, mousePos.y - 16, coords.length() * 7, 16);
 
         Color textColor = Color.WHITE;
         g2.setColor(textColor);
         g2.setFont(new Font("Verdana", 1, 12));
 
-        g2.drawString(coords, mousePoint.x + 4, mousePoint.y - 4);
+        g2.drawString(coords, mousePos.x + 4, mousePos.y - 4);
 
         // Restore previous hints
         g2.setRenderingHints(oldHints);
@@ -507,25 +510,27 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         }
         float coordsPerPixel = 1000 / 250f;
 
-        worldPoint.x = mousePoint.x - offsetPoint.x;
-        worldPoint.y = mousePoint.y - offsetPoint.y;
+        Point worldPixel = new Point(mousePos.x - viewOffsetPixels.x, mousePos.y - viewOffsetPixels.y);
 
         int maxWidth = 16384;
 
-        float x = worldPoint.x * coordsPerPixel;
-        worldPoint.x = (int) x;
+        float x = worldPixel.x * coordsPerPixel;
+        int rawX = (int) x;
 
-        float y = worldPoint.y * coordsPerPixel;
-        worldPoint.y = (int) y;
+        float y = worldPixel.y * coordsPerPixel;
+        int rawY = (int) y;
 
-        if (worldPoint.x >= maxWidth) {
-            worldPoint.x = worldPoint.x % maxWidth;
+        if (rawX >= maxWidth) {
+            rawX = rawX % maxWidth;
         }
 
-        if (worldPoint.x <= 0) {
-            worldPoint.x = worldPoint.x % maxWidth;
-            worldPoint.x += maxWidth;
+        if (rawX <= 0) {
+            rawX = rawX % maxWidth;
+            rawX += maxWidth;
         }
+        
+        hoveredCoord.x = rawX;
+        hoveredCoord.y = rawY;
     }
 
     public void renderHint(final Graphics g) {
@@ -623,8 +628,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint.x = e.getX();
-        lastPoint.y = e.getY();
+        lastClickPos.x = e.getX();
+        lastClickPos.y = e.getY();
 
         if (e.getButton() == MouseEvent.BUTTON3) {
             rclick = true;
@@ -635,8 +640,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
     @Override
     public void mouseReleased(MouseEvent e) {
         dragging = false;
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mousePos.x = e.getX();
+        mousePos.y = e.getY();
 
         if (e.getButton() == MouseEvent.BUTTON3) {
             rclick = false;
@@ -647,60 +652,60 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
     @Override
     public void mouseEntered(MouseEvent e) {
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mousePos.x = e.getX();
+        mousePos.y = e.getY();
         repaint();
     }
 
     @Override
     public void mouseExited(MouseEvent e) {
-        mousePoint.x = Integer.MIN_VALUE;
-        mousePoint.y = Integer.MIN_VALUE;
+        mousePos.x = Integer.MIN_VALUE;
+        mousePos.y = Integer.MIN_VALUE;
         repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         if (rclick) {
-            mousePoint.x = e.getX();
-            mousePoint.y = e.getY();
+            mousePos.x = e.getX();
+            mousePos.y = e.getY();
             repaint();
             return;
         }
 
         dragging = true;
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mousePos.x = e.getX();
+        mousePos.y = e.getY();
 
-        int prevOffsetX = offsetPoint.x;
-        int prevOffsetY = offsetPoint.y;
+        int prevOffsetX = viewOffsetPixels.x;
+        int prevOffsetY = viewOffsetPixels.y;
 
-        int dx = e.getX() - lastPoint.x;
-        int dy = e.getY() - lastPoint.y;
-        offsetPoint.x += dx;
-        offsetPoint.y += dy;
-        lastPoint.x = e.getX();
-        lastPoint.y = e.getY();
+        int dx = e.getX() - lastClickPos.x;
+        int dy = e.getY() - lastClickPos.y;
+        viewOffsetPixels.x += dx;
+        viewOffsetPixels.y += dy;
+        lastClickPos.x = e.getX();
+        lastClickPos.y = e.getY();
 
         int top = 0;
-        int bottom = -1 * (imageDimms.y - this.getHeight());
+        int bottom = -1 * (mapImageDimms.height - this.getHeight());
 
-        if (offsetPoint.y >= top) {
-            offsetPoint.y = top;
+        if (viewOffsetPixels.y >= top) {
+            viewOffsetPixels.y = top;
             dragging = false;
             recalcWorldCoords();
             dragging = true;
         }
 
-        if (offsetPoint.y <= bottom) {
-            offsetPoint.y = bottom;
+        if (viewOffsetPixels.y <= bottom) {
+            viewOffsetPixels.y = bottom;
             dragging = false;
             recalcWorldCoords();
             dragging = true;
         }
 
-        int dox = offsetPoint.x - prevOffsetX;
-        int doy = offsetPoint.y - prevOffsetY;
+        int dox = viewOffsetPixels.x - prevOffsetX;
+        int doy = viewOffsetPixels.y - prevOffsetY;
 
         for (Point p : points) {
             p.x += dox;
@@ -714,8 +719,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        mousePoint.x = e.getX();
-        mousePoint.y = e.getY();
+        mousePos.x = e.getX();
+        mousePos.y = e.getY();
 
         repaint();
     }
@@ -771,8 +776,8 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
         xW /= 1000.0;
         xW *= 250.0;
 
-        mCoord.y = (int) yW + offsetPoint.y;
-        mCoord.x = (int) xW + offsetPoint.x;
+        mCoord.y = (int) yW + viewOffsetPixels.y;
+        mCoord.x = (int) xW + viewOffsetPixels.x;
 
         if (firstRender) {
             // Compute offset to center the first point
@@ -784,30 +789,30 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
 
             // Clamp vertical offset to map limits
             int topLimit = 0;
-            int bottomLimit = Math.min(0, getHeight() - imageDimms.y);
+            int bottomLimit = Math.min(0, getHeight() - mapImageDimms.height);
 
             if (desiredOffsetY > topLimit)
                 desiredOffsetY = topLimit;
             if (desiredOffsetY < bottomLimit)
                 desiredOffsetY = bottomLimit;
 
-            offsetPoint.x = desiredOffsetX;
-            offsetPoint.y = desiredOffsetY;
+            viewOffsetPixels.x = desiredOffsetX;
+            viewOffsetPixels.y = desiredOffsetY;
 
             firstRender = false;
 
-            System.out.println("Auto-centered view with offset: " + offsetPoint.toString());
+            System.out.println("Auto-centered view with offset: " + viewOffsetPixels.toString());
 
             // Update mCoord after shifting offset
-            mCoord.x = (int) xW + offsetPoint.x;
-            mCoord.y = (int) yW + offsetPoint.y;
+            mCoord.x = (int) xW + viewOffsetPixels.x;
+            mCoord.y = (int) yW + viewOffsetPixels.y;
         }
         else if (!points.isEmpty()) {
             // Normal adjustment relative to last point
             Point lastPoint = points.get(points.size() - 1);
 
-            int normXNew = mCoord.x % imageDimms.x;
-            int normXLast = lastPoint.x % imageDimms.x;
+            int normXNew = mCoord.x % mapImageDimms.width;
+            int normXLast = lastPoint.x % mapImageDimms.width;
 
             int yNew = mCoord.y;
             int yLast = lastPoint.y;
@@ -815,11 +820,11 @@ public class Javaish extends JPanel implements MouseListener, MouseMotionListene
             // --- FIX: compute wrapped X difference ---
             int diffx = normXNew - normXLast;
             // wrap horizontally (half-map threshold)
-            int half = imageDimms.x / 2;
+            int half = mapImageDimms.width / 2;
             if (diffx > half)
-                diffx -= imageDimms.x;
+                diffx -= mapImageDimms.width;
             if (diffx < -half)
-                diffx += imageDimms.x;
+                diffx += mapImageDimms.width;
             // --- END FIX ---
 
             int diffy = yNew - yLast;
