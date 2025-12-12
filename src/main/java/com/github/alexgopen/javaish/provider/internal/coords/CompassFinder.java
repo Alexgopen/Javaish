@@ -3,7 +3,7 @@ package com.github.alexgopen.javaish.provider.internal.coords;
 import java.awt.image.BufferedImage;
 
 import com.github.alexgopen.javaish.model.Compass;
-import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.PixelCoord;
 import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CompassFinder {
@@ -15,7 +15,7 @@ public class CompassFinder {
         
     }
     
-    public Point findCompassInImageBackwards(BufferedImage screenshot) {
+    public PixelCoord findCompassInImageBackwards(BufferedImage screenshot) {
         final int firstPixel = Compass.COLOR_VALUES[0] & 0xFFFFFF;
 
         final int searchHeight = screenshot.getHeight() - Compass.HEIGHT;
@@ -31,7 +31,7 @@ public class CompassFinder {
                 // Candidate match: check full 6x20 area
                 BufferedImage sub = screenshot.getSubimage(x, y, Compass.WIDTH, Compass.HEIGHT);
                 if (isImageCompass(sub)) {
-                    return new Point(x, y);
+                    return new PixelCoord(x, y);
                 }
             }
         }

@@ -6,7 +6,7 @@ import java.io.IOException;
 
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Digit;
-import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.WorldCoord;
 import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CoordExtractor {
@@ -16,8 +16,8 @@ public class CoordExtractor {
         // default
     }
 
-    public Point getPoint(BufferedImage coordCrop) throws IOException {
-        Point p = null;
+    public WorldCoord getWorldCoord(BufferedImage coordCrop) throws IOException {
+        WorldCoord wc = null;
         int digitWidth = Digit.WIDTH;
         int height = Digit.HEIGHT;
         StringBuilder allString = new StringBuilder();
@@ -44,7 +44,7 @@ public class CoordExtractor {
                 int xVal = Integer.parseInt(coordParts[0]);
                 int yVal = Integer.parseInt(coordParts[1]);
 
-                p = new Point(xVal, yVal);
+                wc = new WorldCoord(xVal, yVal);
             }
         }
         catch (Exception e) {
@@ -52,10 +52,10 @@ public class CoordExtractor {
                     "CoordExtractor failed to extract coord. Exception=" + e.getClass().getSimpleName());
         }
 
-        if (p == null) {
+        if (wc == null) {
             throw new CoordNotFoundException("CoordExtractor failed to extract coord. p=null");
         }
 
-        return p;
+        return wc;
     }
 }

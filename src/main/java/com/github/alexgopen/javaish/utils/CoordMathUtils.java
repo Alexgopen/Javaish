@@ -2,8 +2,9 @@ package com.github.alexgopen.javaish.utils;
 
 import java.util.List;
 
-import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.PixelCoord;
 import com.github.alexgopen.javaish.model.TrackPoint;
+import com.github.alexgopen.javaish.model.WorldCoord;
 
 public class CoordMathUtils {
 
@@ -70,12 +71,12 @@ public class CoordMathUtils {
         }
 
         // base point for unwrapping
-        Point base = trackPoints.get(start).world;
+        WorldCoord base = trackPoints.get(start).wCoord;
 
         // t = 0,1,2,... for the subset
         int t = 0;
         for (int i = start; i < size; i++, t++) {
-            Point p = trackPoints.get(i).world;
+            WorldCoord p = trackPoints.get(i).wCoord;
 
             // unwrap relative to base to avoid wrap discontinuity
             int ux = wrappedDelta(p.x, base.x); // p.x - base.x (wrapped)

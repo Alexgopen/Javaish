@@ -5,7 +5,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
-import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.PixelCoord;
+import com.github.alexgopen.javaish.model.WorldCoord;
 import com.github.alexgopen.javaish.provider.internal.coords.CoordCropFinder;
 
 public class CoordProvider {
@@ -17,7 +18,7 @@ public class CoordProvider {
         this.coordCropFinder = new CoordCropFinder();
     }
     
-    public Point getCoord() throws AWTException, IOException {
+    public WorldCoord getCoord() throws AWTException, IOException {
         BufferedImage coordCrop = coordCropFinder.getCoordCrop();
 
         if (coordCrop == null)
@@ -25,13 +26,13 @@ public class CoordProvider {
             throw new CoordNotFoundException("CoordCropFinder failed to get coordCrop. coordCrop=null");
         }
         
-        Point p = coordCropFinder.extractPointFromCrop(coordCrop);
+        WorldCoord wc = coordCropFinder.extractWorldCoordFromCrop(coordCrop);
 
-        if (p == null) {
+        if (wc == null) {
             throw new CoordNotFoundException("CoordExtractor failed to get point. p=null");
         }
-
-        return p;
+        
+        return wc;
     }
     
     public void resetPrevFoundCoordLoc()

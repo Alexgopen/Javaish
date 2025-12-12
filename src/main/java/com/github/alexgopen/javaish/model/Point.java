@@ -1,16 +1,8 @@
 package com.github.alexgopen.javaish.model;
 
-public class Point {
-    public int x = Integer.MIN_VALUE;
-    public int y = Integer.MIN_VALUE;
-
-    public Point(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    @Override
-    public String toString() {
-        return x + ", " + y;
-    }
+public abstract class Point {
+    int x;
+    int y;
+    public int getX() {return x;}
+    public int getY() {return y;}
 }

@@ -7,7 +7,8 @@ import java.io.IOException;
 
 import com.github.alexgopen.javaish.exception.CoordNotFoundException;
 import com.github.alexgopen.javaish.model.Digit;
-import com.github.alexgopen.javaish.model.Point;
+import com.github.alexgopen.javaish.model.PixelCoord;
+import com.github.alexgopen.javaish.model.WorldCoord;
 import com.github.alexgopen.javaish.utils.ImageUtils;
 
 public class CoordCropFinder {
@@ -38,8 +39,8 @@ public class CoordCropFinder {
         this.coordExtractor = new CoordExtractor();
     }
     
-    public Point extractPointFromCrop(BufferedImage crop) throws IOException {
-        return coordExtractor.getPoint(crop);
+    public WorldCoord extractWorldCoordFromCrop(BufferedImage crop) throws IOException {
+        return coordExtractor.getWorldCoord(crop);
     }
 
     public boolean onCooldown() {
@@ -80,7 +81,7 @@ public class CoordCropFinder {
                 : screenCapture.getScreenshotOfRectangle(prevFoundCoordLoc);
 
         try {
-            coordExtractor.getPoint(coordCrop);
+            coordExtractor.getWorldCoord(coordCrop);
         } catch (CoordNotFoundException e) {
             resetPrevFoundCoordLoc();
             coordCrop = null;
@@ -91,15 +92,15 @@ public class CoordCropFinder {
 
     private Rectangle findCoordCropFromCompass(BufferedImage screenshot) {
         try {
-            Point compassLoc = compassFinder.findCompassInImageBackwards(screenshot);
+            PixelCoord compassLoc = compassFinder.findCompassInImageBackwards(screenshot);
 
             if (compassLoc != null) {
                 BufferedImage coordCrop = screenshot.getSubimage(compassLoc.x + COMPASS_TO_COORD_OFFSET_X, compassLoc.y + COMPASS_TO_COORD_OFFSET_Y,
                         COORD_CROP_WIDTH, COORD_CROP_HEIGHT);
 
-                Point pcoord = coordExtractor.getPoint(coordCrop);
+                WorldCoord wc = coordExtractor.getWorldCoord(coordCrop);
 
-                if (pcoord != null) {
+                if (wc != null) {
                     return new Rectangle(compassLoc.x + COMPASS_TO_COORD_OFFSET_X, compassLoc.y + COMPASS_TO_COORD_OFFSET_Y, COORD_CROP_WIDTH, COORD_CROP_HEIGHT);
                 }
             }

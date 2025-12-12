@@ -1,6 +1,6 @@
 package com.github.alexgopen.javaish.model;
 
-public class WorldCoord {
+public class WorldCoord extends Point {
     public static final int MAX_X = 16384;
     public static final int MAX_Y = 8192;
 
@@ -43,22 +43,27 @@ public class WorldCoord {
     }
 
     // Convert to map pixel coordinates (0-based)
-    public Point toMapPixel() {
+    public PixelCoord toPixelCoord() {
         int px = x / 4; // 1 pixel = 4 world coords
         int py = y / 4;
-        return new Point(px, py);
+        return new PixelCoord(px, py);
     }
-
-    public WorldCoord add(int dx, int dy) {
-        return new WorldCoord(x + dx, y + dy);
+    
+    /**
+     * Only used for displaying mouse-hovered coordinate tooltip
+     * Not for navigation calculations
+     * 
+     * @param worldPixel represents a pixel coordinate from the map image
+     */
+    public static WorldCoord fromPixelCoord(PixelCoord worldPixel) {
+        int x = worldPixel.x * 4;
+        int y = worldPixel.y * 4;
+        
+        return new WorldCoord(x, y);
     }
-
-    public WorldCoord subtract(int dx, int dy) {
-        return new WorldCoord(x - dx, y - dy);
-    }
-
+    
     @Override
     public String toString() {
-        return "(" + x + "," + y + ")";
+        return x + ", " + y;
     }
 }
