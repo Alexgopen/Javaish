@@ -8,6 +8,12 @@ It provides functionality similar to GVONavish, rebuilt from the ground up using
 
 ---
 
+## Preview
+
+<img width="1593" height="624" alt="Javaish preview" src="https://github.com/user-attachments/assets/7002bc18-11c7-4481-a840-1c555a9e01c9" />
+
+---
+
 ## Features
 
 - Supports custom maps (4096 × 2048)
@@ -46,9 +52,3 @@ It provides functionality similar to GVONavish, rebuilt from the ground up using
    `mvn clean install`
 3. The compiled application will be located at:
    `/dist/javaish-1.0.2/`
-   
----
-
-## Preview
-
-<img width="1593" height="624" alt="Javaish preview" src="https://github.com/user-attachments/assets/7002bc18-11c7-4481-a840-1c555a9e01c9" />
