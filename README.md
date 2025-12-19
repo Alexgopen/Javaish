@@ -18,16 +18,17 @@ It provides functionality similar to GVONavish, rebuilt from the ground up using
 ## Requirements
 
 - Java (JRE or JDK) installed
+- Game settings configured to run either in a window or at your native resolution
+- No graphical scaling active (the coordinate pixels need to be precise)
 
 ---
 
-## Running the Application
+## Using the Application
 
 1. Download the tagged release: [javaish-1.0.2.zip](https://github.com/Alexgopen/Javaish/releases/download/1.0.2/javaish-1.0.2.zip)
 2. Extract the archive
-3. Launch the application:
-   - **Windows:** `windows_launcher-1.0.2.bat`
-   - **Linux:** `linux_launcher-1.0.2.sh`
+3. Launch the application. **Windows:** `windows_launcher-1.0.2.bat` **Linux:** `linux_launcher-1.0.2.sh`
+4. Sail around with **Surveying** active and coordinates visible on screen
 
 ---
 
